@@ -1,11 +1,11 @@
-Reconhecimentos e Direitos Autorais
+#Reconhecimentos e Direitos Autorais
  
-@autor: Arlison Gaspar de Oliveira, Ítalo Francisco Almeida de Oliveira, Gustavo de Oliveira Rego Morais, Joao Pedro Miranda Sousa, Cauã Gabriel Santos Barros 
-@contato: Arlison.go@discente.ufma.br
-@data última versão: 13/06/2025
-@versão: 1.0
-@outros repositórios: [URLs - apontem para os seus Gits AQUI]
-@Agradecimentos: Universidade Federal do Maranhão (UFMA), Professor Doutor Thales Levi Azevedo Valente, e colegas de curso.
+**autor:** Arlison Gaspar de Oliveira, Ítalo Francisco Almeida de Oliveira, Gustavo de Oliveira Rego Morais, Joao Pedro Miranda Sousa, Cauã Gabriel Santos Barros 
+**contato:** Arlison.go@discente.ufma.br
+**data última versão:** 13/06/2025
+**versão:** 1.0
+**outros repositórios:** [URLs - apontem para os seus Gits AQUI]
+**Agradecimentos:** Universidade Federal do Maranhão (UFMA), Professor Doutor Thales Levi Azevedo Valente, e colegas de curso.
  
 Copyright/License
  
