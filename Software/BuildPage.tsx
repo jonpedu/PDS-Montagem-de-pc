@@ -1,7 +1,11 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+<<<<<<< HEAD
 import { AnamnesisData, Build, PCComponent, SelectedComponent, AIRecommendation } from '../types';
+=======
+import { PreferenciaUsuarioInput, Build, Componente, SelectedComponent, AIRecommendation, Ambiente, PerfilPCDetalhado } from '../types'; // Changed AnamnesisData to PreferenciaUsuarioInput, PCComponent to Componente
+>>>>>>> gustavo
 import ChatbotAnamnesis from '../components/build/ChatbotAnamnesis';
 import BuildSummary from '../components/build/BuildSummary';
 import LoadingSpinner from '../components/core/LoadingSpinner';
@@ -20,7 +24,11 @@ const BuildPage: React.FC = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
 
+<<<<<<< HEAD
   const [anamnesisData, setAnamnesisData] = useState<AnamnesisData | null>(null);
+=======
+  const [preferencias, setPreferencias] = useState<PreferenciaUsuarioInput | null>(null); // Changed from anamnesisData
+>>>>>>> gustavo
   const [currentBuild, setCurrentBuild] = useState<Build | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +64,7 @@ const BuildPage: React.FC = () => {
         savedBuilds.push(buildWithUserId);
     }
     localStorage.setItem(`savedBuilds_${currentUser.id}`, JSON.stringify(savedBuilds));
+<<<<<<< HEAD
     alert(`Build "${buildToSave.name}" salva com sucesso em seu perfil!`);
   }, [currentUser]);
 
@@ -78,15 +87,45 @@ const BuildPage: React.FC = () => {
             else if (key === 'budget' && typeof value === 'number') displayValue = `R$ ${value.toFixed(2)}`;
             
             // Generic display key transformation
+=======
+    alert(`Build "${buildToSave.nome}" salva com sucesso em seu perfil!`); // Changed buildToSave.name to buildToSave.nome
+  }, [currentUser]);
+
+  const executeActualExportBuild = useCallback((buildToExport: Build, notesForExport?: string) => {
+    let text = `Build: ${buildToExport.nome}\n`; // Changed buildToExport.name to buildToExport.nome
+    text += `Data: ${new Date(buildToExport.dataCriacao).toLocaleDateString()}\n`; // Changed buildToExport.createdAt to buildToExport.dataCriacao
+    text += `Preço Total Estimado: R$ ${buildToExport.orcamento.toFixed(2)}\n\n`; // Changed buildToExport.totalPrice to buildToExport.orcamento
+    text += `Componentes:\n`;
+    buildToExport.componentes.forEach(c => { // Changed buildToExport.components to buildToExport.componentes
+      text += `- ${c.tipo}: ${c.nome} (${c.brand}) - R$ ${c.preco.toFixed(2)}\n`;
+    });
+    if(buildToExport.requisitos){ // Changed buildToExport.requirements to buildToExport.requisitos
+      text += `\nRequisitos:\n`;
+      Object.entries(buildToExport.requisitos).forEach(([key, value]) => { // Changed buildToExport.requirements to buildToExport.requisitos
+        if(value !== undefined && value !== null && value !== '') {
+            let displayValue = String(value);
+            if (typeof value === 'boolean') displayValue = value ? 'Sim' : 'Não';
+            
+            let keyToTest = key.toLowerCase();
+            if ((keyToTest.includes('temp') || keyToTest.includes('temperatura') || keyToTest === 'cityavgtemp' || keyToTest === 'citymaxtemp' || keyToTest === 'citymintemp') && typeof value === 'number') displayValue = `${value.toFixed(0)}°C`;
+            else if (key === 'orcamento' && typeof value === 'number') displayValue = `R$ ${value.toFixed(2)}`;
+            
+>>>>>>> gustavo
             const displayKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
             text += `- ${displayKey}: ${displayValue}\n`;
         }
       });
     }
     if(notesForExport) text += `\nNotas da IA:\n${notesForExport}\n`;
+<<<<<<< HEAD
     if(buildToExport.compatibilityIssues && buildToExport.compatibilityIssues.length > 0){
       text += `\nAvisos de Compatibilidade:\n`;
       buildToExport.compatibilityIssues.forEach(issue => text += `- ${issue}\n`);
+=======
+    if(buildToExport.avisosCompatibilidade && buildToExport.avisosCompatibilidade.length > 0){ // Changed buildToExport.compatibilityIssues to buildToExport.avisosCompatibilidade
+      text += `\nAvisos de Compatibilidade:\n`;
+      buildToExport.avisosCompatibilidade.forEach(issue => text += `- ${issue}\n`); // Changed buildToExport.compatibilityIssues to buildToExport.avisosCompatibilidade
+>>>>>>> gustavo
     }
     setExportedText(text);
     setIsExportModalOpen(true);
@@ -96,22 +135,36 @@ const BuildPage: React.FC = () => {
     const pathParts = location.pathname.split('/');
     const buildIdFromPath = pathParts.length > 2 && pathParts[1] === 'build' ? pathParts[2] : null;
     
+<<<<<<< HEAD
     // Show initial auth modal only on new builds, if not logged in, not proceeded anonymously, and no pending build in session
+=======
+>>>>>>> gustavo
     if (
       !currentUser &&
       !buildIdFromPath &&
       !hasProceededAnonymously.current &&
+<<<<<<< HEAD
       !anamnesisData && 
+=======
+      !preferencias && 
+>>>>>>> gustavo
       !currentBuild &&
       !isLoading &&
       !error &&
       !pendingActionForAuth &&
+<<<<<<< HEAD
       !sessionStorage.getItem(SESSION_PENDING_BUILD_KEY) // Important: don't show if returning from login
+=======
+      !sessionStorage.getItem(SESSION_PENDING_BUILD_KEY) 
+>>>>>>> gustavo
     ) {
       setIsAuthInfoModalOpen(true);
     }
 
+<<<<<<< HEAD
     // Post-login action handling
+=======
+>>>>>>> gustavo
     if (currentUser && location.state?.fromLogin && location.state?.action) {
       const action = location.state.action as 'save' | 'export';
       const storedBuildJSON = sessionStorage.getItem(SESSION_PENDING_BUILD_KEY);
@@ -122,6 +175,7 @@ const BuildPage: React.FC = () => {
             const buildToProcess: Build = JSON.parse(storedBuildJSON);
             const notesToProcess: string | undefined = storedAiNotesJSON ? JSON.parse(storedAiNotesJSON) : undefined;
             
+<<<<<<< HEAD
             // Restore state
             setCurrentBuild(buildToProcess);
             setAnamnesisData(buildToProcess.requirements || null);
@@ -130,15 +184,28 @@ const BuildPage: React.FC = () => {
             setIsLoading(false); // Ensure loading is false
 
             // Defer execution to ensure state is updated and currentUser context is stable
+=======
+            setCurrentBuild(buildToProcess);
+            setPreferencias(buildToProcess.requisitos || { perfilPC: {} as PerfilPCDetalhado, ambiente: {} as Ambiente }); // Changed buildToProcess.requirements
+            setAiNotes(notesToProcess);
+            setError(null);
+            setIsLoading(false); 
+
+>>>>>>> gustavo
             const timerId = setTimeout(() => {
                 if (action === 'save') {
                     executeActualSaveBuild(buildToProcess);
                 } else if (action === 'export') {
                     executeActualExportBuild(buildToProcess, notesToProcess);
                 }
+<<<<<<< HEAD
             }, 0); // Small delay
             
             // Cleanup session storage and navigation state
+=======
+            }, 0); 
+            
+>>>>>>> gustavo
             sessionStorage.removeItem(SESSION_PENDING_BUILD_KEY);
             sessionStorage.removeItem(SESSION_PENDING_AI_NOTES_KEY);
             setPendingActionForAuth(null);
@@ -154,17 +221,27 @@ const BuildPage: React.FC = () => {
             navigate(location.pathname, { state: {}, replace: true });
         }
       } else {
+<<<<<<< HEAD
         // No pending build in session, clear action and nav state
+=======
+>>>>>>> gustavo
         setPendingActionForAuth(null);
         navigate(location.pathname, { state: {}, replace: true });
       }
     }
+<<<<<<< HEAD
   }, [currentUser, location, navigate, anamnesisData, currentBuild, isLoading, error, pendingActionForAuth, executeActualSaveBuild, executeActualExportBuild]);
+=======
+  }, [currentUser, location, navigate, preferencias, currentBuild, isLoading, error, pendingActionForAuth, executeActualSaveBuild, executeActualExportBuild]);
+>>>>>>> gustavo
 
 
   const handleLoginForBuild = () => {
     setIsAuthInfoModalOpen(false);
+<<<<<<< HEAD
     // Pass the pendingAction to the login route, so it can be returned
+=======
+>>>>>>> gustavo
     navigate('/login', { state: { from: location, pendingAction: pendingActionForAuth } });
   };
 
@@ -174,13 +251,19 @@ const BuildPage: React.FC = () => {
     sessionStorage.setItem(SESSION_PROCEEDED_ANONYMOUSLY_KEY, 'true');
   };
   
+<<<<<<< HEAD
   const handleAnamnesisComplete = useCallback((data: AnamnesisData) => {
     setAnamnesisData(data); // Save completed anamnesis data
+=======
+  const handleAnamnesisComplete = useCallback((data: PreferenciaUsuarioInput) => { // Changed AnamnesisData to PreferenciaUsuarioInput
+    setPreferencias(data); 
+>>>>>>> gustavo
     setIsLoading(true);
     setError(null);
     setAiNotes(undefined);
     setCurrentBuild(null); 
     
+<<<<<<< HEAD
     getBuildRecommendation(data, MOCK_COMPONENTS)
       .then(recommendation => {
         if (recommendation) {
@@ -209,6 +292,33 @@ const BuildPage: React.FC = () => {
             createdAt: new Date().toISOString(),
             requirements: data, // Store the full anamnesis data with the build
             compatibilityIssues: recommendation.compatibilityWarnings || []
+=======
+    // Ensure MOCK_COMPONENTS is treated as Componente[] for the service
+    const componentesDisponiveis = MOCK_COMPONENTS as unknown as Componente[];
+
+    getBuildRecommendation(data, componentesDisponiveis)
+      .then(recommendation => {
+        if (recommendation) {
+          const recommendedCompDetails: Componente[] = componentesDisponiveis.filter(c => recommendation.recommendedComponentIds.includes(c.id));
+          
+          const selectedComponents: SelectedComponent[] = recommendedCompDetails.map(comp => {
+            // comp is already a full Componente object from MOCK_COMPONENTS
+            return {
+                ...comp, // Spread all properties from Componente
+            } as SelectedComponent; // SelectedComponent extends Componente
+          });
+
+          const totalPrice = selectedComponents.reduce((sum, comp) => sum + comp.preco, 0); // Changed comp.price to comp.preco
+
+          const newBuild: Build = {
+            id: Date.now().toString(),
+            nome: `Build IA para ${data.perfilPC?.purpose || data.perfilPC?.machineType || 'Uso Geral'}`, // Changed name to nome
+            componentes: selectedComponents, // Changed components to componentes
+            orcamento: recommendation.estimatedTotalPrice !== undefined ? recommendation.estimatedTotalPrice : totalPrice, // Changed totalPrice to orcamento
+            dataCriacao: new Date().toISOString(), // Changed createdAt to dataCriacao
+            requisitos: data,  // Changed requirements to requisitos
+            avisosCompatibilidade: recommendation.compatibilityWarnings || [] // Changed compatibilityIssues to avisosCompatibilidade
+>>>>>>> gustavo
           };
           setCurrentBuild(newBuild);
           setAiNotes(`${recommendation.justification}${recommendation.budgetNotes ? `\n\nNotas sobre o orçamento: ${recommendation.budgetNotes}` : ''}`);
@@ -256,14 +366,20 @@ const BuildPage: React.FC = () => {
   const handleTryAgain = () => {
     setError(null);
     setCurrentBuild(null);
+<<<<<<< HEAD
     // Retain anamnesisData if user wants to try again with same inputs, or set to null to restart chat
     // setAnamnesisData(null); // Uncomment to clear chat and start over
+=======
+>>>>>>> gustavo
     setAiNotes(undefined);
     setPendingActionForAuth(null);
     sessionStorage.removeItem(SESSION_PENDING_BUILD_KEY);
     sessionStorage.removeItem(SESSION_PENDING_AI_NOTES_KEY);
+<<<<<<< HEAD
     // Do not clear SESSION_PROCEEDED_ANONYMOUSLY_KEY here, let user explicitly logout to reset that
     // hasProceededAnonymously.current = false; // This might cause modal to reappear if not logged out
+=======
+>>>>>>> gustavo
   };
 
   return (
@@ -271,7 +387,10 @@ const BuildPage: React.FC = () => {
       {isAuthInfoModalOpen ? (
         <Modal
           isOpen={isAuthInfoModalOpen}
+<<<<<<< HEAD
           // If a specific action is pending, closing modal should cancel that action. Otherwise, it's "continue anonymously".
+=======
+>>>>>>> gustavo
           onClose={pendingActionForAuth ? () => { setIsAuthInfoModalOpen(false); setPendingActionForAuth(null); } : handleContinueAnonymously}
           title={pendingActionForAuth ? "Login Necessário" : "Aviso: Montagem Anônima"}
           size="md"
@@ -300,8 +419,12 @@ const BuildPage: React.FC = () => {
       ) : (
         <>
           {!currentBuild && !isLoading && !error && (
+<<<<<<< HEAD
             // Pass anamnesisData which might be null (for new chat) or populated (if returning or trying again with same data)
             <ChatbotAnamnesis onAnamnesisComplete={handleAnamnesisComplete} initialAnamnesisData={anamnesisData || {}} />
+=======
+            <ChatbotAnamnesis onAnamnesisComplete={handleAnamnesisComplete} initialAnamnesisData={preferencias || { perfilPC: {} as PerfilPCDetalhado, ambiente: {} as Ambiente }} />
+>>>>>>> gustavo
           )}
 
           {isLoading && (
@@ -344,7 +467,11 @@ const BuildPage: React.FC = () => {
                 onClick={() => {
                     navigator.clipboard.writeText(exportedText)
                         .then(() => alert("Copiado para a área de transferência!"))
+<<<<<<< HEAD
                         .catch(().alert("Falha ao copiar. Por favor, copie manualmente."));
+=======
+                        .catch(()=> alert("Falha ao copiar. Por favor, copie manualmente."));
+>>>>>>> gustavo
                 }}
                 variant="primary"
                 className="flex-1"

@@ -1,6 +1,11 @@
 {
+<<<<<<< HEAD
   "name": "versão 3- CodeTugaBuilds - Montador de PCs Inteligente",
   "description": "implementando a api de clima e potencialmente a função de salvar builds para não logados",
+=======
+  "name": "Copy of versão 4- CodeTugaBuilds - Montador de PCs Inteligente",
+  "description": "adaptando a diagrama de classe",
+>>>>>>> gustavo
   "requestFramePermissions": [],
   "prompt": ""
 }

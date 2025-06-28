@@ -9,12 +9,12 @@ import LoadingSpinner from '../components/core/LoadingSpinner';
 const SavedBuildCard: React.FC<{ build: Build; onDelete: (buildId: string) => void }> = ({ build, onDelete }) => {
   return (
     <div className="bg-primary p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
-      <h3 className="text-xl font-semibold text-accent mb-2">{build.name}</h3>
-      <p className="text-sm text-neutral-dark mb-1">Criada em: {new Date(build.createdAt).toLocaleDateString()}</p>
-      <p className="text-sm text-neutral-dark mb-1">Componentes: {build.components.length}</p>
-      <p className="text-lg font-medium text-neutral mb-4">Total: R$ {build.totalPrice.toFixed(2)}</p>
+      <h3 className="text-xl font-semibold text-accent mb-2">{build.nome}</h3> {/* Alterado para build.nome */}
+      <p className="text-sm text-neutral-dark mb-1">Criada em: {new Date(build.dataCriacao).toLocaleDateString()}</p> {/* Alterado para build.dataCriacao */}
+      <p className="text-sm text-neutral-dark mb-1">Componentes: {build.componentes.length}</p>
+      <p className="text-lg font-medium text-neutral mb-4">Total: R$ {build.orcamento.toFixed(2)}</p> {/* Alterado para build.orcamento */}
       <div className="flex space-x-2">
-        <Link to={`/build/${build.id}`}> {/*  Actual view/edit page for build not implemented, placeholder */}
+        <Link to={`/build/${build.id}`}> 
           <Button size="sm" variant="ghost">Ver/Editar</Button>
         </Link>
         <Button size="sm" variant="danger" onClick={() => onDelete(build.id)}>Excluir</Button>
@@ -31,7 +31,6 @@ const DashboardPage: React.FC = () => {
   useEffect(() => {
     if (currentUser) {
       setIsLoadingBuilds(true);
-      // Simulate fetching builds
       setTimeout(() => {
         const buildsStr = localStorage.getItem(`savedBuilds_${currentUser.id}`);
         setSavedBuilds(buildsStr ? JSON.parse(buildsStr) : []);
@@ -55,7 +54,7 @@ const DashboardPage: React.FC = () => {
   return (
     <div className="container mx-auto p-4">
       <header className="mb-10">
-        <h1 className="text-4xl font-bold text-accent mb-2">Bem-vindo, {currentUser.name}!</h1>
+        <h1 className="text-4xl font-bold text-accent mb-2">Bem-vindo, {currentUser.nome}!</h1> {/* Alterado para currentUser.nome */}
         <p className="text-lg text-neutral-dark">Gerencie suas montagens e explore novas possibilidades.</p>
       </header>
 
@@ -65,9 +64,9 @@ const DashboardPage: React.FC = () => {
           <Link to="/build" className="block bg-secondary p-6 rounded-lg shadow-lg hover:bg-opacity-80 transition-colors text-center">
             <div className="text-5xl mb-3 text-accent">🖥️</div>
             <h3 className="text-xl font-semibold text-neutral">Iniciar Nova Montagem</h3>
-            <p className="text-sm text-neutral-dark mt-1">Use nossa IA ou monte manualmente.</p>
+            <p className="text-sm text-neutral-dark mt-1">Use nossa IA ou monte manually.</p>
           </Link>
-          <Link to="/profile" className="block bg-secondary p-6 rounded-lg shadow-lg hover:bg-opacity-80 transition-colors text-center"> {/* Profile page not implemented */}
+          <Link to="/profile" className="block bg-secondary p-6 rounded-lg shadow-lg hover:bg-opacity-80 transition-colors text-center">
              <div className="text-5xl mb-3 text-accent">👤</div>
             <h3 className="text-xl font-semibold text-neutral">Meu Perfil</h3>
             <p className="text-sm text-neutral-dark mt-1">Veja e edite suas informações.</p>
@@ -106,4 +105,3 @@ const DashboardPage: React.FC = () => {
 };
 
 export default DashboardPage;
-    
