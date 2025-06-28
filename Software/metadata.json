@@ -1,6 +1,6 @@
 {
-  "name": "versao 2 CodeTugaBuilds - Montador de PCs Inteligente",
-  "description": "sem implementar o botão de permitir detecção automatica\n",
+  "name": "versão 3- CodeTugaBuilds - Montador de PCs Inteligente",
+  "description": "implementando a api de clima e potencialmente a função de salvar builds para não logados",
   "requestFramePermissions": [],
   "prompt": ""
 }
