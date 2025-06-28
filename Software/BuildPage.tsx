@@ -183,7 +183,7 @@ const BuildPage: React.FC = () => {
           const recommendedCompDetails: Componente[] = componentesDisponiveis.filter(c => recommendation.recommendedComponentIds.includes(c.id));
           
           const selectedComponents: SelectedComponent[] = recommendedCompDetails.map(comp => {
-            // comp is already a full Componente object from MOCK_COMPONENTS
+            // comp is already a full Componente object
             return {
                 ...comp, // Spread all properties from Componente
             } as SelectedComponent; // SelectedComponent extends Componente
