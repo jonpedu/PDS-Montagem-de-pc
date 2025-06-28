@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { PreferenciaUsuarioInput, Build, Componente, SelectedComponent, AIRecommendation, Ambiente, PerfilPCDetalhado } from '../types'; // Tipos atualizados
+import { PreferenciaUsuarioInput, Build, Componente, SelectedComponent, AIRecommendation, Ambiente, PerfilPCDetalhado } from '../types'; // Changed AnamnesisData to PreferenciaUsuarioInput, PCComponent to Componente
 import ChatbotAnamnesis from '../components/build/ChatbotAnamnesis';
 import BuildSummary from '../components/build/BuildSummary';
 import LoadingSpinner from '../components/core/LoadingSpinner';
@@ -20,34 +20,23 @@ const BuildPage: React.FC = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
 
-  const [preferencias, setPreferencias] = useState<PreferenciaUsuarioInput | null>(null); // Tipo atualizado
+  const [preferencias, setPreferencias] = useState<PreferenciaUsuarioInput | null>(null); // Changed from anamnesisData
   const [currentBuild, setCurrentBuild] = useState<Build | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [aiNotes, setAiNotes] = useState<string | undefined>(undefined);
   const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
   const [exportedText, setExportedText] = useState<string>('');
-  const [isViewingSavedBuild, setIsViewingSavedBuild] = useState<boolean>(false);
 
   const [isAuthInfoModalOpen, setIsAuthInfoModalOpen] = useState<boolean>(false);
   const [pendingActionForAuth, setPendingActionForAuth] = useState<'save' | 'export' | null>(null);
   const hasProceededAnonymously = useRef<boolean>(sessionStorage.getItem(SESSION_PROCEEDED_ANONYMOUSLY_KEY) === 'true');
 
-  const resetBuildState = useCallback(() => {
-    setPreferencias(null);
-    setCurrentBuild(null);
-    setError(null);
-    setAiNotes(undefined);
-    setIsViewingSavedBuild(false);
-    sessionStorage.removeItem(SESSION_PENDING_BUILD_KEY);
-    sessionStorage.removeItem(SESSION_PENDING_AI_NOTES_KEY);
-    setPendingActionForAuth(null);
-  }, []);
 
   const executeActualSaveBuild = useCallback((buildToSave: Build) => {
     if (!currentUser) {
-      console.error("Attempted to save build without a logged-in user.");
-      alert("Erro: Usuário não está logado para salvar.");
+      console.error("Attempted to save build without a logged-in user. This should not happen if logic is correct.");
+      alert("Erro: Usuário não está logado para salvar. Por favor, faça login ou cadastre-se e tente novamente.");
       setPendingActionForAuth(null); 
       sessionStorage.removeItem(SESSION_PENDING_BUILD_KEY);
       sessionStorage.removeItem(SESSION_PENDING_AI_NOTES_KEY);
@@ -58,6 +47,7 @@ const BuildPage: React.FC = () => {
     const savedBuilds: Build[] = savedBuildsStr ? JSON.parse(savedBuildsStr) : [];
     
     const buildWithUserId = { ...buildToSave, userId: currentUser.id };
+
     const existingBuildIndex = savedBuilds.findIndex(b => b.id === buildWithUserId.id);
 
     if (existingBuildIndex > -1) {
@@ -66,94 +56,56 @@ const BuildPage: React.FC = () => {
         savedBuilds.push(buildWithUserId);
     }
     localStorage.setItem(`savedBuilds_${currentUser.id}`, JSON.stringify(savedBuilds));
-    alert(`Build "${buildToSave.nome}" salva com sucesso em seu perfil!`);
+    alert(`Build "${buildToSave.nome}" salva com sucesso em seu perfil!`); // Changed buildToSave.name to buildToSave.nome
   }, [currentUser]);
 
   const executeActualExportBuild = useCallback((buildToExport: Build, notesForExport?: string) => {
-    let text = `Build: ${buildToExport.nome}\n`;
-    text += `Data: ${new Date(buildToExport.dataCriacao).toLocaleDateString()}\n`;
-    text += `Preço Total Estimado: R$ ${buildToExport.orcamento.toFixed(2)}\n\n`;
+    let text = `Build: ${buildToExport.nome}\n`; // Changed buildToExport.name to buildToExport.nome
+    text += `Data: ${new Date(buildToExport.dataCriacao).toLocaleDateString()}\n`; // Changed buildToExport.createdAt to buildToExport.dataCriacao
+    text += `Preço Total Estimado: R$ ${buildToExport.orcamento.toFixed(2)}\n\n`; // Changed buildToExport.totalPrice to buildToExport.orcamento
     text += `Componentes:\n`;
-    buildToExport.componentes.forEach(c => {
+    buildToExport.componentes.forEach(c => { // Changed buildToExport.components to buildToExport.componentes
       text += `- ${c.tipo}: ${c.nome} (${c.brand}) - R$ ${c.preco.toFixed(2)}\n`;
     });
-
-    if(buildToExport.requisitos){
+    if(buildToExport.requisitos){ // Changed buildToExport.requirements to buildToExport.requisitos
       text += `\nRequisitos:\n`;
-      const formatRequisitos = (obj: any, indent = "") => {
-        for (const key in obj) {
-          if (obj.hasOwnProperty(key) && obj[key] !== undefined && obj[key] !== null && obj[key] !== '') {
-            if (typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
-              text += `${indent}- ${key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}:\n`;
-              formatRequisitos(obj[key], indent + "  ");
-            } else {
-              let displayValue = String(obj[key]);
-              if (typeof obj[key] === 'boolean') displayValue = obj[key] ? 'Sim' : 'Não';
-              if ((key.toLowerCase().includes('temp') || key.toLowerCase().includes('temperatura')) && typeof obj[key] === 'number') displayValue = `${(obj[key] as number).toFixed(0)}°C`;
-              else if (key === 'orcamento' && typeof obj[key] === 'number') displayValue = `R$ ${(obj[key] as number).toFixed(2)}`;
-              
-              const displayKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-              text += `${indent}- ${displayKey}: ${displayValue}\n`;
-            }
-          }
+      Object.entries(buildToExport.requisitos).forEach(([key, value]) => { // Changed buildToExport.requirements to buildToExport.requisitos
+        if(value !== undefined && value !== null && value !== '') {
+            let displayValue = String(value);
+            if (typeof value === 'boolean') displayValue = value ? 'Sim' : 'Não';
+            
+            let keyToTest = key.toLowerCase();
+            if ((keyToTest.includes('temp') || keyToTest.includes('temperatura') || keyToTest === 'cityavgtemp' || keyToTest === 'citymaxtemp' || keyToTest === 'citymintemp') && typeof value === 'number') displayValue = `${value.toFixed(0)}°C`;
+            else if (key === 'orcamento' && typeof value === 'number') displayValue = `R$ ${value.toFixed(2)}`;
+            
+            const displayKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+            text += `- ${displayKey}: ${displayValue}\n`;
         }
-      };
-      formatRequisitos(buildToExport.requisitos);
+      });
     }
-
     if(notesForExport) text += `\nNotas da IA:\n${notesForExport}\n`;
-    if(buildToExport.avisosCompatibilidade && buildToExport.avisosCompatibilidade.length > 0){
+    if(buildToExport.avisosCompatibilidade && buildToExport.avisosCompatibilidade.length > 0){ // Changed buildToExport.compatibilityIssues to buildToExport.avisosCompatibilidade
       text += `\nAvisos de Compatibilidade:\n`;
-      buildToExport.avisosCompatibilidade.forEach(issue => text += `- ${issue}\n`);
+      buildToExport.avisosCompatibilidade.forEach(issue => text += `- ${issue}\n`); // Changed buildToExport.compatibilityIssues to buildToExport.avisosCompatibilidade
     }
     setExportedText(text);
     setIsExportModalOpen(true);
   }, []); 
 
-  // Effect to handle loading/resetting the build state based on URL/navigation
-  useEffect(() => {
-    const pathParts = location.pathname.split('/');
-    const buildId = pathParts.length > 2 && pathParts[1] === 'build' ? pathParts[2] : null;
-
-    if (location.state?.newBuild) {
-      resetBuildState();
-      navigate('/build', { replace: true }); // Clean state from URL history
-      return;
-    }
-
-    if (buildId) {
-      if (currentBuild?.id === buildId) return; // Already viewing this build
-
-      if (currentUser) {
-        setIsLoading(true);
-        const savedBuildsStr = localStorage.getItem(`savedBuilds_${currentUser.id}`);
-        const savedBuilds: Build[] = savedBuildsStr ? JSON.parse(savedBuildsStr) : [];
-        const foundBuild = savedBuilds.find(b => b.id === buildId);
-
-        if (foundBuild) {
-          setCurrentBuild(foundBuild);
-          setPreferencias(foundBuild.requisitos || { perfilPC: {} as PerfilPCDetalhado, ambiente: {} as Ambiente });
-          setAiNotes(undefined);
-          setError(null);
-          setIsViewingSavedBuild(true);
-        } else {
-          setError(`A build com o ID '${buildId}' não foi encontrada ou pertence a outro usuário.`);
-          resetBuildState();
-        }
-        setIsLoading(false);
-      }
-    }
-  }, [location.pathname, location.state, currentUser, currentBuild?.id, resetBuildState, navigate]);
-
-  // Effect to handle auth modal and post-login actions
   useEffect(() => {
     const pathParts = location.pathname.split('/');
     const buildIdFromPath = pathParts.length > 2 && pathParts[1] === 'build' ? pathParts[2] : null;
     
     if (
-      !currentUser && !buildIdFromPath && !hasProceededAnonymously.current &&
-      !preferencias && !currentBuild && !isLoading && !error &&
-      !pendingActionForAuth && !sessionStorage.getItem(SESSION_PENDING_BUILD_KEY)
+      !currentUser &&
+      !buildIdFromPath &&
+      !hasProceededAnonymously.current &&
+      !preferencias && 
+      !currentBuild &&
+      !isLoading &&
+      !error &&
+      !pendingActionForAuth &&
+      !sessionStorage.getItem(SESSION_PENDING_BUILD_KEY) 
     ) {
       setIsAuthInfoModalOpen(true);
     }
@@ -169,24 +121,28 @@ const BuildPage: React.FC = () => {
             const notesToProcess: string | undefined = storedAiNotesJSON ? JSON.parse(storedAiNotesJSON) : undefined;
             
             setCurrentBuild(buildToProcess);
-            setPreferencias(buildToProcess.requisitos || { perfilPC: {} as PerfilPCDetalhado, ambiente: {} as Ambiente });
+            setPreferencias(buildToProcess.requisitos || { perfilPC: {} as PerfilPCDetalhado, ambiente: {} as Ambiente }); // Changed buildToProcess.requirements
             setAiNotes(notesToProcess);
             setError(null);
-            setIsLoading(false);
+            setIsLoading(false); 
 
             const timerId = setTimeout(() => {
-                if (action === 'save') executeActualSaveBuild(buildToProcess);
-                else if (action === 'export') executeActualExportBuild(buildToProcess, notesToProcess);
-            }, 0);
+                if (action === 'save') {
+                    executeActualSaveBuild(buildToProcess);
+                } else if (action === 'export') {
+                    executeActualExportBuild(buildToProcess, notesToProcess);
+                }
+            }, 0); 
             
             sessionStorage.removeItem(SESSION_PENDING_BUILD_KEY);
             sessionStorage.removeItem(SESSION_PENDING_AI_NOTES_KEY);
             setPendingActionForAuth(null);
             navigate(location.pathname, { state: {}, replace: true });
+
             return () => clearTimeout(timerId);
         } catch (e) {
-            console.error("Error processing pending build:", e);
-            setError("Erro ao processar build pendente.");
+            console.error("Error processing pending build from session storage:", e);
+            setError("Erro ao processar build pendente. Tente novamente.");
             sessionStorage.removeItem(SESSION_PENDING_BUILD_KEY);
             sessionStorage.removeItem(SESSION_PENDING_AI_NOTES_KEY);
             setPendingActionForAuth(null);
@@ -211,14 +167,14 @@ const BuildPage: React.FC = () => {
     sessionStorage.setItem(SESSION_PROCEEDED_ANONYMOUSLY_KEY, 'true');
   };
   
-  const handleAnamnesisComplete = useCallback((data: PreferenciaUsuarioInput) => {
-    setPreferencias(data);
+  const handleAnamnesisComplete = useCallback((data: PreferenciaUsuarioInput) => { // Changed AnamnesisData to PreferenciaUsuarioInput
+    setPreferencias(data); 
     setIsLoading(true);
     setError(null);
     setAiNotes(undefined);
     setCurrentBuild(null); 
-    setIsViewingSavedBuild(false);
     
+    // Ensure MOCK_COMPONENTS is treated as Componente[] for the service
     const componentesDisponiveis = MOCK_COMPONENTS as unknown as Componente[];
 
     getBuildRecommendation(data, componentesDisponiveis)
@@ -226,18 +182,23 @@ const BuildPage: React.FC = () => {
         if (recommendation) {
           const recommendedCompDetails: Componente[] = componentesDisponiveis.filter(c => recommendation.recommendedComponentIds.includes(c.id));
           
-          const selectedComponents: SelectedComponent[] = recommendedCompDetails.map(comp => ({ ...comp }));
+          const selectedComponents: SelectedComponent[] = recommendedCompDetails.map(comp => {
+            // comp is already a full Componente object from MOCK_COMPONENTS
+            return {
+                ...comp, // Spread all properties from Componente
+            } as SelectedComponent; // SelectedComponent extends Componente
+          });
 
-          const totalPrice = selectedComponents.reduce((sum, comp) => sum + (comp.preco || 0), 0);
+          const totalPrice = selectedComponents.reduce((sum, comp) => sum + comp.preco, 0); // Changed comp.price to comp.preco
 
           const newBuild: Build = {
             id: Date.now().toString(),
-            nome: `Build IA para ${data.perfilPC?.purpose || data.perfilPC?.machineType || 'Uso Geral'}`,
-            componentes: selectedComponents,
-            orcamento: recommendation.estimatedTotalPrice !== undefined ? recommendation.estimatedTotalPrice : totalPrice,
-            dataCriacao: new Date().toISOString(),
-            requisitos: data, 
-            avisosCompatibilidade: recommendation.compatibilityWarnings || []
+            nome: `Build IA para ${data.perfilPC?.purpose || data.perfilPC?.machineType || 'Uso Geral'}`, // Changed name to nome
+            componentes: selectedComponents, // Changed components to componentes
+            orcamento: recommendation.estimatedTotalPrice !== undefined ? recommendation.estimatedTotalPrice : totalPrice, // Changed totalPrice to orcamento
+            dataCriacao: new Date().toISOString(), // Changed createdAt to dataCriacao
+            requisitos: data,  // Changed requirements to requisitos
+            avisosCompatibilidade: recommendation.compatibilityWarnings || [] // Changed compatibilityIssues to avisosCompatibilidade
           };
           setCurrentBuild(newBuild);
           setAiNotes(`${recommendation.justification}${recommendation.budgetNotes ? `\n\nNotas sobre o orçamento: ${recommendation.budgetNotes}` : ''}`);
@@ -248,7 +209,7 @@ const BuildPage: React.FC = () => {
       })
       .catch(err => {
         console.error("Error fetching build recommendation:", err);
-        setError(err.message || 'Ocorreu um erro ao contatar o serviço de IA. Por favor, tente novamente.');
+        setError('Ocorreu um erro ao contatar o serviço de IA. Por favor, tente novamente.');
         setCurrentBuild(null);
       })
       .finally(() => setIsLoading(false));
@@ -260,6 +221,7 @@ const BuildPage: React.FC = () => {
       sessionStorage.setItem(SESSION_PENDING_BUILD_KEY, JSON.stringify(currentBuild));
       if (aiNotes) sessionStorage.setItem(SESSION_PENDING_AI_NOTES_KEY, JSON.stringify(aiNotes));
       else sessionStorage.removeItem(SESSION_PENDING_AI_NOTES_KEY);
+      
       setPendingActionForAuth('save');
       setIsAuthInfoModalOpen(true);
     } else {
@@ -273,6 +235,7 @@ const BuildPage: React.FC = () => {
       sessionStorage.setItem(SESSION_PENDING_BUILD_KEY, JSON.stringify(currentBuild));
       if (aiNotes) sessionStorage.setItem(SESSION_PENDING_AI_NOTES_KEY, JSON.stringify(aiNotes));
       else sessionStorage.removeItem(SESSION_PENDING_AI_NOTES_KEY);
+
       setPendingActionForAuth('export');
       setIsAuthInfoModalOpen(true);
     } else {
@@ -287,56 +250,6 @@ const BuildPage: React.FC = () => {
     setPendingActionForAuth(null);
     sessionStorage.removeItem(SESSION_PENDING_BUILD_KEY);
     sessionStorage.removeItem(SESSION_PENDING_AI_NOTES_KEY);
-  };
-
-  const renderContent = () => {
-    if (isLoading) {
-      return (
-        <div className="text-center py-10">
-          <LoadingSpinner size="lg" text={isViewingSavedBuild ? 'Carregando sua build...' : 'IA está pensando na sua build...'} />
-        </div>
-      );
-    }
-    
-    if (error) {
-      return (
-        <div className="my-6 p-6 bg-red-800/90 text-red-100 rounded-lg text-center shadow-xl">
-          <h3 className="text-2xl font-semibold mb-3">Oops! Algo deu errado.</h3>
-          <p className="mb-4">{error}</p>
-          <Button onClick={handleTryAgain} variant="secondary" size="lg">
-            Tentar Novamente com a IA
-          </Button>
-        </div>
-      );
-    }
-
-    if (currentBuild) {
-      return (
-        <>
-          <BuildSummary
-              build={currentBuild}
-              isLoading={isLoading} 
-              onSaveBuild={triggerSaveBuild}
-              onExportBuild={triggerExportBuild}
-              aiRecommendationNotes={aiNotes}
-            />
-          {isViewingSavedBuild && (
-            <div className="mt-6 text-center">
-              <Button
-                  onClick={() => navigate('/build', { state: { newBuild: true } })}
-                  variant="secondary"
-                  size="lg"
-              >
-                  Iniciar Nova Montagem
-              </Button>
-            </div>
-          )}
-        </>
-      );
-    }
-
-    // Default to chatbot
-    return <ChatbotAnamnesis onAnamnesisComplete={handleAnamnesisComplete} initialAnamnesisData={preferencias || { perfilPC: {} as PerfilPCDetalhado, ambiente: {} as Ambiente }} />;
   };
 
   return (
@@ -369,7 +282,39 @@ const BuildPage: React.FC = () => {
             )}
           </div>
         </Modal>
-      ) : renderContent()}
+      ) : (
+        <>
+          {!currentBuild && !isLoading && !error && (
+            <ChatbotAnamnesis onAnamnesisComplete={handleAnamnesisComplete} initialAnamnesisData={preferencias || { perfilPC: {} as PerfilPCDetalhado, ambiente: {} as Ambiente }} />
+          )}
+
+          {isLoading && (
+            <div className="text-center py-10">
+              <LoadingSpinner size="lg" text={'IA está pensando na sua build...'} />
+            </div>
+          )}
+
+          {error && !isLoading && (
+            <div className="my-6 p-6 bg-red-800/90 text-red-100 rounded-lg text-center shadow-xl">
+              <h3 className="text-2xl font-semibold mb-3">Oops! Algo deu errado.</h3>
+              <p className="mb-4">{error}</p>
+              <Button onClick={handleTryAgain} variant="secondary" size="lg">
+                Tentar Novamente com a IA
+              </Button>
+            </div>
+          )}
+          
+          {!isLoading && !error && currentBuild && (
+            <BuildSummary
+                build={currentBuild}
+                isLoading={isLoading} 
+                onSaveBuild={triggerSaveBuild}
+                onExportBuild={triggerExportBuild}
+                aiRecommendationNotes={aiNotes}
+              />
+          )}
+        </>
+      )}
 
       <Modal isOpen={isExportModalOpen} onClose={() => setIsExportModalOpen(false)} title="Exportar Build" size="lg">
         <textarea
