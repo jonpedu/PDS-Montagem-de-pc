@@ -1,7 +1,6 @@
 
 import { GoogleGenAI, GenerateContentResponse, Part, Content } from "@google/genai";
 import { PreferenciaUsuarioInput, ChatMessage, Componente, AIRecommendation, MachineType, PurposeType, GamingType, WorkField, CreativeEditingType, CreativeWorkResolution, ProjectSize, BuildExperience, AestheticsImportance, ServerType, ServerUptime, ServerScalability, EnvTempControlType, CaseSizeType, NoiseLevelType, Ambiente, PerfilPCDetalhado } from '../types';
-import { MOCK_COMPONENTS } from '../constants/components'; // For providing component list to AI
 
 const API_KEY = process.env.API_KEY;
 

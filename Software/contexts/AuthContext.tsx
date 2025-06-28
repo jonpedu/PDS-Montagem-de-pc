@@ -1,153 +1,175 @@
-import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
-import { User, UserWithPassword } from '../types';
-import { useNavigate, useLocation } from 'react-router-dom';
 
-const USERS_DB_KEY = 'codeTugaBuilds_users_db';
+import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
+import { User } from '../types';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { supabase } from '../services/supabaseClient';
+import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 
 interface AuthContextType {
   currentUser: User | null;
+  session: Session | null;
   isLoading: boolean;
   login: (email: string, pass: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   register: (nome: string, email: string, pass: string) => Promise<void>;
-  updateUser: (userId: string, updates: Partial<Pick<UserWithPassword, 'nome' | 'email' | 'password_mock'>>) => Promise<void>;
+  updateUser: (updates: { nome?: string; email?: string; password?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const navigate = useNavigate();
   const location = useLocation();
 
+  const fetchUserProfile = useCallback(async (supabaseUser: SupabaseUser): Promise<User | null> => {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('nome, email')
+      .eq('id', supabaseUser.id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116: no rows found
+      console.error("Error fetching user profile:", error);
+      return null;
+    }
+    
+    if (profile) {
+      return { id: supabaseUser.id, nome: profile.nome, email: profile.email };
+    }
+    return null;
+
+  }, []);
 
   useEffect(() => {
-    try {
-      const storedUser = localStorage.getItem('currentUser');
-      if (storedUser) {
-        setCurrentUser(JSON.parse(storedUser));
+    const getInitialSession = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+       if (error) {
+         console.error("Error getting initial session:", error);
+         setIsLoading(false);
+         return;
+       }
+
+      setSession(session);
+      if (session?.user) {
+        const profile = await fetchUserProfile(session.user);
+        setCurrentUser(profile);
       }
-    } catch (error) {
-      console.error("Failed to load user from localStorage", error);
-      localStorage.removeItem('currentUser');
-    }
-    setIsLoading(false);
-  }, []);
+      setIsLoading(false);
+    };
+    
+    getInitialSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setSession(session);
+      if (session?.user) {
+        const profile = await fetchUserProfile(session.user);
+        setCurrentUser(profile);
+      } else {
+        setCurrentUser(null);
+      }
+       if (event === 'INITIAL_SESSION') {
+        // already handled by getInitialSession
+      } else {
+         setIsLoading(false);
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [fetchUserProfile]);
 
   const handleAuthSuccessNavigation = () => {
     const navState = location.state as any;
     const fromLocation = navState?.from;
-    const pendingActionFromLogin = navState?.pendingAction;
     const originalPath = fromLocation?.pathname || '/dashboard';
-
-
-    if (pendingActionFromLogin && (originalPath === '/build' || originalPath.startsWith('/build/'))) {
-        navigate(originalPath, { replace: true, state: { fromLogin: true, action: pendingActionFromLogin } });
+    
+    // Check for pending actions after login
+    if (navState?.pendingAction) {
+       navigate(originalPath, { replace: true, state: { fromLogin: true, action: navState.pendingAction } });
     } else {
-        navigate(originalPath, { replace: true });
+       navigate(originalPath, { replace: true });
     }
   };
 
-  const login = useCallback(async (email: string, pass: string) => {
-    setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-
-    const usersDbStr = localStorage.getItem(USERS_DB_KEY);
-    const usersDb: UserWithPassword[] = usersDbStr ? JSON.parse(usersDbStr) : [];
-    
-    const foundUser = usersDb.find(u => u.email.toLowerCase() === email.toLowerCase());
-
-    if (!foundUser || foundUser.password_mock !== pass) {
-        setIsLoading(false);
-        throw new Error("Email ou senha inválidos.");
-    }
-
-    const { password_mock, ...userForSession } = foundUser;
-    setCurrentUser(userForSession);
-    localStorage.setItem('currentUser', JSON.stringify(userForSession));
-    setIsLoading(false);
+  const login = async (email: string, pass: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    if (error) throw error;
     handleAuthSuccessNavigation();
-  }, [navigate, location.state]);
+  };
 
-  const register = useCallback(async (nome: string, email: string, pass: string) => {
-    setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-
-    const usersDbStr = localStorage.getItem(USERS_DB_KEY);
-    const usersDb: UserWithPassword[] = usersDbStr ? JSON.parse(usersDbStr) : [];
-
-    if (usersDb.some(u => u.email.toLowerCase() === email.toLowerCase())) {
-        setIsLoading(false);
-        throw new Error("Este email já está cadastrado.");
-    }
-
-    const newUser: UserWithPassword = {
-        id: Date.now().toString(),
-        nome,
-        email,
-        password_mock: pass
-    };
-
-    usersDb.push(newUser);
-    localStorage.setItem(USERS_DB_KEY, JSON.stringify(usersDb));
-
-    const { password_mock, ...userForSession } = newUser;
-    setCurrentUser(userForSession);
-    localStorage.setItem('currentUser', JSON.stringify(userForSession));
-    setIsLoading(false);
+  const register = async (nome: string, email: string, pass: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password: pass,
+      options: {
+        data: {
+          nome: nome, // This will be used by the trigger to create the profile
+        },
+      },
+    });
+    if (error) throw error;
     handleAuthSuccessNavigation();
-  }, [navigate, location.state]);
+  };
 
-  const updateUser = useCallback(async (userId: string, updates: Partial<Pick<UserWithPassword, 'nome' | 'email' | 'password_mock'>>) => {
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-    
-    const usersDbStr = localStorage.getItem(USERS_DB_KEY);
-    const usersDb: UserWithPassword[] = usersDbStr ? JSON.parse(usersDbStr) : [];
-    
-    const userIndex = usersDb.findIndex(u => u.id === userId);
-
-    if (userIndex === -1) {
-      throw new Error("Usuário não encontrado.");
-    }
-
-    // Check for email collision
-    if (updates.email && usersDb.some(u => u.email.toLowerCase() === updates.email!.toLowerCase() && u.id !== userId)) {
-        throw new Error("Este email já está em uso por outra conta.");
-    }
-    
-    // Apply updates to the user in the DB
-    const originalUser = usersDb[userIndex];
-    const updatedUserInDb = { ...originalUser, ...updates };
-    usersDb[userIndex] = updatedUserInDb;
-    localStorage.setItem(USERS_DB_KEY, JSON.stringify(usersDb));
-
-    // Update the current session user
-    const { password_mock, ...userForSession } = updatedUserInDb;
-    setCurrentUser(userForSession);
-    localStorage.setItem('currentUser', JSON.stringify(userForSession));
-  }, []);
-
-
-  const logout = useCallback(() => {
-    setCurrentUser(null);
-    localStorage.removeItem('currentUser');
+  const logout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
     sessionStorage.removeItem('proceededAnonymously');
     sessionStorage.removeItem('pendingBuild'); 
     sessionStorage.removeItem('pendingAiNotes');
+    setCurrentUser(null);
+    setSession(null);
     navigate('/');
-  }, [navigate]);
+  };
 
-  return (
-    <AuthContext.Provider value={{ currentUser, isLoading, login, logout, register, updateUser }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const updateUser = async (updates: { nome?: string; email?: string; password?: string }) => {
+    if (!currentUser || !session?.user) throw new Error("User not authenticated.");
+
+    const { nome, email, password } = updates;
+    const supabaseUserUpdates: any = {};
+    if (email) supabaseUserUpdates.email = email;
+    if (password) supabaseUserUpdates.password = password;
+
+    // Update auth user if email or password changed
+    if (Object.keys(supabaseUserUpdates).length > 0) {
+      const { error: authError } = await supabase.auth.updateUser(supabaseUserUpdates);
+      if (authError) throw authError;
+    }
+    
+    // Update profiles table if name changed
+    if (nome) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ nome })
+        .eq('id', currentUser.id);
+      if (profileError) throw profileError;
+    }
+    
+    // Refetch the user profile to update state
+    const updatedProfile = await fetchUserProfile(session.user);
+    setCurrentUser(updatedProfile);
+  };
+
+  const value: AuthContextType = {
+    currentUser,
+    session,
+    isLoading,
+    login,
+    logout,
+    register,
+    updateUser
+  };
+
+  return <AuthContext.Provider value={value}>{!isLoading && children}</AuthContext.Provider>;
 };
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

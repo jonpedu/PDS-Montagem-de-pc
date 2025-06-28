@@ -7,7 +7,6 @@ import BuildSummary from '../components/build/BuildSummary';
 import LoadingSpinner from '../components/core/LoadingSpinner';
 import Button from '../components/core/Button';
 import { getBuildRecommendation } from '../services/geminiService';
-import { MOCK_COMPONENTS } from '../constants/components';
 import { useAuth } from '../contexts/AuthContext';
 import Modal from '../components/core/Modal';
 
@@ -174,8 +173,9 @@ const BuildPage: React.FC = () => {
     setAiNotes(undefined);
     setCurrentBuild(null); 
     
-    // Ensure MOCK_COMPONENTS is treated as Componente[] for the service
-    const componentesDisponiveis = MOCK_COMPONENTS as unknown as Componente[];
+    // This file is obsolete and does not have access to the component database.
+    // Using an empty array to fix the build error. The active component is /pages/BuildPage.tsx.
+    const componentesDisponiveis: Componente[] = [];
 
     getBuildRecommendation(data, componentesDisponiveis)
       .then(recommendation => {

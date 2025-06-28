@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Button from '../components/core/Button';
@@ -31,18 +32,22 @@ const ProfilePage: React.FC = () => {
   }, [currentUser]);
 
   if (authIsLoading) {
-    return <p className="text-center text-neutral-dark py-10">Carregando perfil...</p>;
+    return <div className="flex justify-center p-10"><LoadingSpinner text="Carregando perfil..." /></div>;
   }
   
   if (!currentUser) {
-     // This case should ideally be handled by ProtectedRoute, but as a fallback:
+    // This case should ideally be handled by ProtectedRoute, but as a fallback:
     navigate('/login');
     return null;
   }
 
-  const handleLogout = () => {
-    logout();
-    navigate('/'); 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/');
+    } catch (e: any) {
+        alert(`Falha ao sair: ${e.message}`);
+    }
   };
   
   const handleEditToggle = () => {
@@ -78,10 +83,10 @@ const ProfilePage: React.FC = () => {
       return;
     }
 
-    const updates: Partial<{ nome: string; email: string; password_mock: string }> = {};
+    const updates: { nome?: string; email?: string; password?: string } = {};
     if (formData.nome.trim() !== currentUser.nome) updates.nome = formData.nome.trim();
     if (formData.email.trim() !== currentUser.email) updates.email = formData.email.trim();
-    if (formData.newPassword) updates.password_mock = formData.newPassword;
+    if (formData.newPassword) updates.password = formData.newPassword;
     
     if (Object.keys(updates).length === 0) {
       setSuccess("Nenhuma alteração foi feita.");
@@ -91,7 +96,7 @@ const ProfilePage: React.FC = () => {
     
     setIsUpdating(true);
     try {
-      await updateUser(currentUser.id, updates);
+      await updateUser(updates);
       setSuccess('Perfil atualizado com sucesso!');
       setIsEditing(false);
     } catch (err: any) {
@@ -136,8 +141,9 @@ const ProfilePage: React.FC = () => {
             type="email"
             value={formData.email}
             onChange={handleChange}
-            disabled={!isEditing || isUpdating}
-            className="mt-1 text-lg text-neutral p-4 bg-primary rounded-lg shadow-sm w-full disabled:opacity-70 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-accent"
+            disabled={true} // Email change should be handled with care (e.g., re-verification)
+            className="mt-1 text-lg text-neutral p-4 bg-primary rounded-lg shadow-sm w-full disabled:opacity-50 disabled:cursor-not-allowed"
+            title="A alteração de e-mail está desabilitada."
           />
         </div>
         

@@ -1,15 +1,15 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { PreferenciaUsuarioInput, Build, Componente, SelectedComponent, AIRecommendation, Ambiente, PerfilPCDetalhado } from '../types'; // Tipos atualizados
+import { PreferenciaUsuarioInput, Build, Componente, SelectedComponent, AIRecommendation, Ambiente, PerfilPCDetalhado } from '../types';
 import ChatbotAnamnesis from '../components/build/ChatbotAnamnesis';
 import BuildSummary from '../components/build/BuildSummary';
 import LoadingSpinner from '../components/core/LoadingSpinner';
 import Button from '../components/core/Button';
 import { getBuildRecommendation } from '../services/geminiService';
-import { MOCK_COMPONENTS } from '../constants/components';
 import { useAuth } from '../contexts/AuthContext';
 import Modal from '../components/core/Modal';
+import { supabase } from '../services/supabaseClient';
 
 const SESSION_PENDING_BUILD_KEY = 'pendingBuild';
 const SESSION_PENDING_AI_NOTES_KEY = 'pendingAiNotes';
@@ -20,7 +20,7 @@ const BuildPage: React.FC = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
 
-  const [preferencias, setPreferencias] = useState<PreferenciaUsuarioInput | null>(null); // Tipo atualizado
+  const [preferencias, setPreferencias] = useState<PreferenciaUsuarioInput | null>(null);
   const [currentBuild, setCurrentBuild] = useState<Build | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,10 +28,25 @@ const BuildPage: React.FC = () => {
   const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
   const [exportedText, setExportedText] = useState<string>('');
   const [isViewingSavedBuild, setIsViewingSavedBuild] = useState<boolean>(false);
+  const [availableComponents, setAvailableComponents] = useState<Componente[] | null>(null);
 
   const [isAuthInfoModalOpen, setIsAuthInfoModalOpen] = useState<boolean>(false);
   const [pendingActionForAuth, setPendingActionForAuth] = useState<'save' | 'export' | null>(null);
   const hasProceededAnonymously = useRef<boolean>(sessionStorage.getItem(SESSION_PROCEEDED_ANONYMOUSLY_KEY) === 'true');
+
+  // Fetch available components from Supabase on mount
+  useEffect(() => {
+    const fetchComponents = async () => {
+        const { data, error } = await supabase.from('components').select('*');
+        if (error) {
+            console.error("Error fetching components:", error);
+            setError("Não foi possível carregar os componentes disponíveis. A montagem IA está desabilitada.");
+        } else {
+            setAvailableComponents(data as Componente[]);
+        }
+    };
+    fetchComponents();
+  }, []);
 
   const resetBuildState = useCallback(() => {
     setPreferencias(null);
@@ -44,30 +59,63 @@ const BuildPage: React.FC = () => {
     setPendingActionForAuth(null);
   }, []);
 
-  const executeActualSaveBuild = useCallback((buildToSave: Build) => {
+  const executeActualSaveBuild = useCallback(async (buildToSave: Build) => {
     if (!currentUser) {
       console.error("Attempted to save build without a logged-in user.");
       alert("Erro: Usuário não está logado para salvar.");
-      setPendingActionForAuth(null); 
-      sessionStorage.removeItem(SESSION_PENDING_BUILD_KEY);
-      sessionStorage.removeItem(SESSION_PENDING_AI_NOTES_KEY);
-      setIsAuthInfoModalOpen(true); 
       return;
     }
-    const savedBuildsStr = localStorage.getItem(`savedBuilds_${currentUser.id}`);
-    const savedBuilds: Build[] = savedBuildsStr ? JSON.parse(savedBuildsStr) : [];
     
-    const buildWithUserId = { ...buildToSave, userId: currentUser.id };
-    const existingBuildIndex = savedBuilds.findIndex(b => b.id === buildWithUserId.id);
+    setIsLoading(true);
+    // 1. Prepare and upsert the build itself (without components)
+    const buildPayload = {
+        id: buildToSave.id,
+        user_id: currentUser.id,
+        nome: buildToSave.nome,
+        orcamento: buildToSave.orcamento,
+        data_criacao: buildToSave.dataCriacao,
+        requisitos: buildToSave.requisitos as any,
+        avisos_compatibilidade: buildToSave.avisosCompatibilidade,
+    };
 
-    if (existingBuildIndex > -1) {
-        savedBuilds[existingBuildIndex] = buildWithUserId;
-    } else {
-        savedBuilds.push(buildWithUserId);
+    const { error: buildError } = await supabase.from('builds').upsert(buildPayload);
+
+    if (buildError) {
+      console.error("Error saving build:", buildError);
+      alert(`Falha ao salvar a build: ${buildError.message}`);
+      setIsLoading(false);
+      return;
     }
-    localStorage.setItem(`savedBuilds_${currentUser.id}`, JSON.stringify(savedBuilds));
-    alert(`Build "${buildToSave.nome}" salva com sucesso em seu perfil!`);
-  }, [currentUser]);
+
+    // 2. Clear existing components for this build to handle updates correctly
+    const { error: deleteError } = await supabase.from('build_components').delete().eq('build_id', buildToSave.id);
+    if (deleteError) {
+      console.error("Error clearing old components:", deleteError);
+      // continue anyway, maybe it was a new build
+    }
+
+    // 3. Insert new component relations
+    const buildComponentsPayload = buildToSave.componentes.map(comp => ({
+      build_id: buildToSave.id,
+      component_id: comp.id,
+    }));
+
+    if (buildComponentsPayload.length > 0) {
+      const { error: componentsError } = await supabase.from('build_components').insert(buildComponentsPayload);
+      if (componentsError) {
+        console.error("Error saving build components:", componentsError);
+        alert(`Falha ao salvar os componentes da build: ${componentsError.message}`);
+        setIsLoading(false);
+        return;
+      }
+    }
+    
+    setIsLoading(false);
+    alert(`Build "${buildToSave.nome}" salva com sucesso!`);
+    navigate(`/build/${buildToSave.id}`, { replace: true });
+    setIsViewingSavedBuild(true);
+
+  }, [currentUser, navigate]);
 
   const executeActualExportBuild = useCallback((buildToExport: Build, notesForExport?: string) => {
     let text = `Build: ${buildToExport.nome}\n`;
@@ -117,33 +165,53 @@ const BuildPage: React.FC = () => {
 
     if (location.state?.newBuild) {
       resetBuildState();
-      navigate('/build', { replace: true }); // Clean state from URL history
+      navigate('/build', { replace: true });
       return;
     }
 
     if (buildId) {
-      if (currentBuild?.id === buildId) return; // Already viewing this build
+      if (currentBuild?.id === buildId) return;
 
-      if (currentUser) {
-        setIsLoading(true);
-        const savedBuildsStr = localStorage.getItem(`savedBuilds_${currentUser.id}`);
-        const savedBuilds: Build[] = savedBuildsStr ? JSON.parse(savedBuildsStr) : [];
-        const foundBuild = savedBuilds.find(b => b.id === buildId);
+      setIsLoading(true);
+      const fetchSavedBuild = async () => {
+        const { data, error } = await supabase
+          .from('builds')
+          .select(`
+            *,
+            componentes:build_components(
+              components(*)
+            )
+          `)
+          .eq('id', buildId)
+          .single();
 
-        if (foundBuild) {
-          setCurrentBuild(foundBuild);
-          setPreferencias(foundBuild.requisitos || { perfilPC: {} as PerfilPCDetalhado, ambiente: {} as Ambiente });
+        if (error) {
+          setError(`A build com o ID '${buildId}' não foi encontrada ou você não tem permissão para vê-la.`);
+          resetBuildState();
+        } else if (data) {
+          // @ts-ignore
+          const components = data.componentes.map(bc => bc.components).filter(Boolean);
+          const formattedBuild: Build = {
+            id: data.id,
+            nome: data.nome,
+            orcamento: data.orcamento,
+            dataCriacao: data.data_criacao,
+            avisosCompatibilidade: data.avisos_compatibilidade || [],
+            requisitos: data.requisitos as PreferenciaUsuarioInput || undefined,
+            componentes: components as SelectedComponent[],
+            userId: data.user_id,
+          };
+          setCurrentBuild(formattedBuild);
+          setPreferencias(formattedBuild.requisitos || { perfilPC: {} as PerfilPCDetalhado, ambiente: {} as Ambiente });
           setAiNotes(undefined);
           setError(null);
           setIsViewingSavedBuild(true);
-        } else {
-          setError(`A build com o ID '${buildId}' não foi encontrada ou pertence a outro usuário.`);
-          resetBuildState();
         }
         setIsLoading(false);
-      }
+      };
+      fetchSavedBuild();
     }
-  }, [location.pathname, location.state, currentUser, currentBuild?.id, resetBuildState, navigate]);
+  }, [location.pathname, location.state, currentBuild?.id, resetBuildState, navigate]);
 
   // Effect to handle auth modal and post-login actions
   useEffect(() => {
@@ -168,6 +236,7 @@ const BuildPage: React.FC = () => {
             const buildToProcess: Build = JSON.parse(storedBuildJSON);
             const notesToProcess: string | undefined = storedAiNotesJSON ? JSON.parse(storedAiNotesJSON) : undefined;
             
+            // Restore state before executing action
             setCurrentBuild(buildToProcess);
             setPreferencias(buildToProcess.requisitos || { perfilPC: {} as PerfilPCDetalhado, ambiente: {} as Ambiente });
             setAiNotes(notesToProcess);
@@ -177,7 +246,7 @@ const BuildPage: React.FC = () => {
             const timerId = setTimeout(() => {
                 if (action === 'save') executeActualSaveBuild(buildToProcess);
                 else if (action === 'export') executeActualExportBuild(buildToProcess, notesToProcess);
-            }, 0);
+            }, 100);
             
             sessionStorage.removeItem(SESSION_PENDING_BUILD_KEY);
             sessionStorage.removeItem(SESSION_PENDING_AI_NOTES_KEY);
@@ -185,16 +254,10 @@ const BuildPage: React.FC = () => {
             navigate(location.pathname, { state: {}, replace: true });
             return () => clearTimeout(timerId);
         } catch (e) {
-            console.error("Error processing pending build:", e);
             setError("Erro ao processar build pendente.");
             sessionStorage.removeItem(SESSION_PENDING_BUILD_KEY);
             sessionStorage.removeItem(SESSION_PENDING_AI_NOTES_KEY);
-            setPendingActionForAuth(null);
-            navigate(location.pathname, { state: {}, replace: true });
         }
-      } else {
-        setPendingActionForAuth(null);
-        navigate(location.pathname, { state: {}, replace: true });
       }
     }
   }, [currentUser, location, navigate, preferencias, currentBuild, isLoading, error, pendingActionForAuth, executeActualSaveBuild, executeActualExportBuild]);
@@ -212,6 +275,10 @@ const BuildPage: React.FC = () => {
   };
   
   const handleAnamnesisComplete = useCallback((data: PreferenciaUsuarioInput) => {
+    if (!availableComponents) {
+        setError("Os componentes não estão disponíveis. A montagem IA não pode continuar.");
+        return;
+    }
     setPreferencias(data);
     setIsLoading(true);
     setError(null);
@@ -219,19 +286,14 @@ const BuildPage: React.FC = () => {
     setCurrentBuild(null); 
     setIsViewingSavedBuild(false);
     
-    const componentesDisponiveis = MOCK_COMPONENTS as unknown as Componente[];
-
-    getBuildRecommendation(data, componentesDisponiveis)
+    getBuildRecommendation(data, availableComponents)
       .then(recommendation => {
-        if (recommendation) {
-          const recommendedCompDetails: Componente[] = componentesDisponiveis.filter(c => recommendation.recommendedComponentIds.includes(c.id));
-          
+        if (recommendation && availableComponents) {
+          const recommendedCompDetails: Componente[] = availableComponents.filter(c => recommendation.recommendedComponentIds.includes(c.id));
           const selectedComponents: SelectedComponent[] = recommendedCompDetails.map(comp => ({ ...comp }));
-
           const totalPrice = selectedComponents.reduce((sum, comp) => sum + (comp.preco || 0), 0);
-
           const newBuild: Build = {
-            id: Date.now().toString(),
+            id: crypto.randomUUID(),
             nome: `Build IA para ${data.perfilPC?.purpose || data.perfilPC?.machineType || 'Uso Geral'}`,
             componentes: selectedComponents,
             orcamento: recommendation.estimatedTotalPrice !== undefined ? recommendation.estimatedTotalPrice : totalPrice,
@@ -247,19 +309,17 @@ const BuildPage: React.FC = () => {
         }
       })
       .catch(err => {
-        console.error("Error fetching build recommendation:", err);
         setError(err.message || 'Ocorreu um erro ao contatar o serviço de IA. Por favor, tente novamente.');
         setCurrentBuild(null);
       })
       .finally(() => setIsLoading(false));
-  }, []);
+  }, [availableComponents]);
 
   const triggerSaveBuild = () => {
     if (!currentBuild) return;
     if (!currentUser) {
       sessionStorage.setItem(SESSION_PENDING_BUILD_KEY, JSON.stringify(currentBuild));
       if (aiNotes) sessionStorage.setItem(SESSION_PENDING_AI_NOTES_KEY, JSON.stringify(aiNotes));
-      else sessionStorage.removeItem(SESSION_PENDING_AI_NOTES_KEY);
       setPendingActionForAuth('save');
       setIsAuthInfoModalOpen(true);
     } else {
@@ -269,27 +329,23 @@ const BuildPage: React.FC = () => {
 
   const triggerExportBuild = () => {
     if (!currentBuild) return;
-    if (!currentUser) {
-      sessionStorage.setItem(SESSION_PENDING_BUILD_KEY, JSON.stringify(currentBuild));
-      if (aiNotes) sessionStorage.setItem(SESSION_PENDING_AI_NOTES_KEY, JSON.stringify(aiNotes));
-      else sessionStorage.removeItem(SESSION_PENDING_AI_NOTES_KEY);
-      setPendingActionForAuth('export');
-      setIsAuthInfoModalOpen(true);
-    } else {
-      executeActualExportBuild(currentBuild, aiNotes);
-    }
+    executeActualExportBuild(currentBuild, aiNotes);
   };
   
   const handleTryAgain = () => {
-    setError(null);
-    setCurrentBuild(null);
-    setAiNotes(undefined);
-    setPendingActionForAuth(null);
-    sessionStorage.removeItem(SESSION_PENDING_BUILD_KEY);
-    sessionStorage.removeItem(SESSION_PENDING_AI_NOTES_KEY);
+    resetBuildState();
+    navigate('/build', { state: { newBuild: true }, replace: true });
   };
 
   const renderContent = () => {
+    if (!availableComponents && !error) {
+       return (
+        <div className="text-center py-10">
+          <LoadingSpinner size="lg" text={'Carregando componentes...'} />
+        </div>
+      );
+    }
+
     if (isLoading) {
       return (
         <div className="text-center py-10">
@@ -304,7 +360,7 @@ const BuildPage: React.FC = () => {
           <h3 className="text-2xl font-semibold mb-3">Oops! Algo deu errado.</h3>
           <p className="mb-4">{error}</p>
           <Button onClick={handleTryAgain} variant="secondary" size="lg">
-            Tentar Novamente com a IA
+            Tentar Novamente
           </Button>
         </div>
       );
@@ -320,22 +376,19 @@ const BuildPage: React.FC = () => {
               onExportBuild={triggerExportBuild}
               aiRecommendationNotes={aiNotes}
             />
-          {isViewingSavedBuild && (
-            <div className="mt-6 text-center">
-              <Button
-                  onClick={() => navigate('/build', { state: { newBuild: true } })}
-                  variant="secondary"
-                  size="lg"
-              >
-                  Iniciar Nova Montagem
-              </Button>
-            </div>
-          )}
+          <div className="mt-6 text-center">
+            <Button
+                onClick={() => navigate('/build', { state: { newBuild: true } })}
+                variant="secondary"
+                size="lg"
+            >
+                Iniciar Nova Montagem com IA
+            </Button>
+          </div>
         </>
       );
     }
 
-    // Default to chatbot
     return <ChatbotAnamnesis onAnamnesisComplete={handleAnamnesisComplete} initialAnamnesisData={preferencias || { perfilPC: {} as PerfilPCDetalhado, ambiente: {} as Ambiente }} />;
   };
 
@@ -350,8 +403,7 @@ const BuildPage: React.FC = () => {
         >
           <p className="text-neutral-dark mb-6">
             {pendingActionForAuth === 'save' && "Você precisa estar logado para salvar sua build. Faça login ou crie uma conta."}
-            {pendingActionForAuth === 'export' && "Você precisa estar logado para exportar sua build. Faça login ou crie uma conta."}
-            {!pendingActionForAuth && "Você pode iniciar a montagem do seu PC agora. No entanto, para salvar ou exportar sua build, será necessário fazer login."}
+            {!pendingActionForAuth && "Você pode iniciar a montagem do seu PC agora. No entanto, para salvar sua build, será necessário fazer login."}
           </p>
           <div className="flex flex-col sm:flex-row gap-3">
             <Button onClick={handleLoginForBuild} variant="primary" className="flex-1">

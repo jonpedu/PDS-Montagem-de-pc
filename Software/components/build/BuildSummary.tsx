@@ -1,8 +1,7 @@
 
 import React from 'react';
-import { Build, SelectedComponent, Componente, PreferenciaUsuarioInput } from '../../types'; // Tipos atualizados
+import { Build, SelectedComponent, Componente } from '../../types'; // Tipos atualizados
 import Button from '../core/Button';
-import { MOCK_COMPONENTS } from '../../constants/components';
 
 interface BuildSummaryProps {
   build: Build | null;
@@ -15,7 +14,7 @@ interface BuildSummaryProps {
 const ComponentItem: React.FC<{ component: SelectedComponent }> = ({ component }) => (
   <li className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-4 px-3 bg-primary rounded-lg hover:bg-primary/80 transition-colors duration-150">
     <div className="flex items-center mb-2 sm:mb-0">
-      <img src={component.imageUrl || `https://picsum.photos/seed/${component.id}/50/50`} alt={component.nome} className="w-12 h-12 object-cover rounded-md mr-4" />
+      <img src={component.imageUrl || `https://pjdgcszputgevqggtwhp.supabase.co/storage/v1/object/public/component_images/placeholder.webp`} alt={component.nome} className="w-12 h-12 object-cover rounded-md mr-4" />
       <div>
         <h4 className="font-semibold text-accent text-md">{component.nome}</h4>
         <p className="text-xs text-neutral-dark">{component.tipo} - {component.brand}</p>
@@ -105,21 +104,8 @@ const BuildSummary: React.FC<BuildSummaryProps> = ({ build, isLoading, onSaveBui
     );
   }
   
-  const getFullComponentDetails = (componentId: string): Componente | undefined => {
-    // @ts-ignore MOCK_COMPONENTS é de PCComponent, mas deve ser compatível com Componente
-    return MOCK_COMPONENTS.find(c => c.id === componentId) as Componente | undefined;
-  };
-
-  const detailedComponents = build.componentes.map(c => {
-    // Se 'c' já tem nome e preço, é provável que seja um objeto completo.
-    // Senão, tenta buscar detalhes completos do MOCK_COMPONENTS.
-    if (c.nome && c.preco !== undefined) return c as SelectedComponent; 
-    const fullDetails = getFullComponentDetails(c.id);
-    return fullDetails ? { ...fullDetails, ...c } as SelectedComponent : c as SelectedComponent; 
-  });
-
-  const totalPrice = detailedComponents.reduce((sum, component) => sum + (component.preco || 0), 0);
-
+  // The build.componentes array is now expected to have full component details from Supabase.
+  const detailedComponents = build.componentes;
 
   return (
     <div className="bg-secondary p-6 rounded-lg shadow-xl">
