@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PreferenciaUsuarioInput, ChatMessage, CityWeatherData, Ambiente, PerfilPCDetalhado } from '../../types'; // Tipos atualizados
 import { getChatbotResponse } from '../../services/geminiService';
@@ -12,8 +11,8 @@ interface ChatbotAnamnesisProps {
   initialAnamnesisData?: PreferenciaUsuarioInput; // Tipo atualizado
 }
 
-const LOCATION_PERMISSION_QUESTION = "você permite que detectemos sua localização automaticamente?";
-const INITIAL_AI_MESSAGE = "Que tipo de máquina você deseja montar? (Computador Pessoal, Servidor, Estação de Trabalho, Máquina para Mineração, PC para Streaming, Outro)";
+const LOCATION_PERMISSION_QUESTION = "você permite que detectemos sua localização";
+const INITIAL_AI_MESSAGE = "Que tipo de máquina você deseja montar? (ex: Computador Pessoal para Jogos, Servidor, Estação de Trabalho)";
 
 
 const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onAnamnesisComplete, initialAnamnesisData }) => {
@@ -25,6 +24,7 @@ const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onAnamnesisComplete
     initialAnamnesisData || { perfilPC: {} as PerfilPCDetalhado, ambiente: {} as Ambiente }
   );
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const [awaitingLocationPermission, setAwaitingLocationPermission] = useState<boolean>(false);
   const [locationProcessed, setLocationProcessed] = useState<boolean>(!!initialAnamnesisData?.ambiente?.cidade);
@@ -50,10 +50,12 @@ const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onAnamnesisComplete
   const processAiResponse = useCallback((aiResponse: string, updatedPreferenciasFromAI: PreferenciaUsuarioInput) => {
     addMessage('ai', aiResponse);
     setPreferencias(updatedPreferenciasFromAI);
+    
+    const lowerAiResponse = aiResponse.toLowerCase();
 
-    if (aiResponse.toLowerCase().includes(LOCATION_PERMISSION_QUESTION.toLowerCase()) && !locationProcessed && !updatedPreferenciasFromAI.ambiente.cidade) {
+    if (lowerAiResponse.includes(LOCATION_PERMISSION_QUESTION) && !locationProcessed && !updatedPreferenciasFromAI.ambiente.cidade) {
       setAwaitingLocationPermission(true);
-    } else if (aiResponse.toLowerCase().includes("posso prosseguir para gerar uma recomendação") || aiResponse.toLowerCase().includes("podemos prosseguir para gerar uma recomendação")) {
+    } else if (lowerAiResponse.includes("gerar uma recomendação")) {
       addMessage('system', 'Coleta de requisitos concluída! Clique em "Gerar Recomendação" para continuar.');
     }
   }, [addMessage, locationProcessed]);
@@ -81,6 +83,20 @@ const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onAnamnesisComplete
     setUserInput('');
     await callGeminiChat(userMsgText, preferencias);
   };
+  
+  const isAnamnesisConsideredCompleteByAI = messages.some(
+    msg => msg.sender === 'ai' && msg.text.toLowerCase().includes("gerar uma recomendação")
+  );
+  const preliminaryCheck = !!(preferencias.perfilPC?.machineType && (preferencias.orcamento || preferencias.orcamentoRange));
+  const canGenerateRecommendation = isAnamnesisConsideredCompleteByAI && preliminaryCheck;
+
+  useEffect(() => {
+    // Focus input when AI is done loading and chat is still active
+    if (!isLoading && !awaitingLocationPermission && !canGenerateRecommendation) {
+        inputRef.current?.focus();
+    }
+  }, [isLoading, awaitingLocationPermission, canGenerateRecommendation]);
+
 
   const handleLocationPermission = async (allow: boolean) => {
     setAwaitingLocationPermission(false);
@@ -139,11 +155,6 @@ const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onAnamnesisComplete
     setIsLoading(false);
   };
   
-  const isAnamnesisConsideredCompleteByAI = messages.some(msg => msg.sender === 'ai' && (msg.text.toLowerCase().includes("posso prosseguir para gerar uma recomendação") || msg.text.toLowerCase().includes("podemos prosseguir para gerar uma recomendação")));
-  
-  const preliminaryCheck = !!(preferencias.perfilPC?.machineType && (preferencias.orcamento || preferencias.orcamentoRange));
-  const canGenerateRecommendation = isAnamnesisConsideredCompleteByAI && preliminaryCheck;
-
   // Helper para exibir chaves de forma amigável
   const getDisplayKey = (category: string, subKey: string): string => {
     const commonMap: Record<string, string> = {
@@ -250,6 +261,7 @@ const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onAnamnesisComplete
       ) : (
         <form onSubmit={handleSendMessage} className="flex gap-3">
           <input
+            ref={inputRef}
             type="text"
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}

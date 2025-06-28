@@ -6,6 +6,14 @@ export interface User {
   // senha não é armazenada aqui, é transitória
 }
 
+// This interface is for internal use by the authentication service.
+// In a real application, NEVER store plain text passwords. This 'password_mock' field
+// is for mock purposes only and should be a salted hash in a production environment.
+export interface UserWithPassword extends User {
+  password_mock: string;
+}
+
+
 // Enumerações existentes, manter como estão ou mapear para nomes do diagrama se necessário
 export enum ComponentCategory {
   CPU = "Processador",

@@ -48,101 +48,45 @@ export const getChatbotResponse = async (
   }
 
 
-  const systemInstruction = `Você é CodeTuga, um assistente especializado em montagem de PCs. Siga este fluxo inteligente para coleta de requisitos:
+  const systemInstruction = `Você é CodeTuga, um assistente especializado em montagem de PCs. Siga este fluxo inteligente e conciso para coleta de requisitos.
 
 ESTADO ATUAL DA COLETA (PreferenciaUsuarioInput): ${JSON.stringify(currentPreferencias)}
 ${weatherInfoForSystem ? `\nINFORMAÇÃO CLIMÁTICA DISPONÍVEL: ${weatherInfoForSystem}` : ''}
 
-FLUXO DE PERGUNTAS INTELIGENTE:
+FLUXO DE PERGUNTAS INTELIGENTE E CONCISO:
 
 1.  **Identificação do Tipo de Máquina** (se \`!currentPreferencias.perfilPC.machineType\`):
-    Pergunte: "Que tipo de máquina você deseja montar? (Computador Pessoal, Servidor, Estação de Trabalho, Máquina para Mineração, PC para Streaming, Outro)"
+    Pergunte: "Que tipo de máquina você deseja montar? (ex: Computador Pessoal para Jogos, Servidor, Estação de Trabalho)"
 
 2.  **Fluxos Específicos por Tipo** (após \`perfilPC.machineType\` ser definido):
 
     ### Para Computador Pessoal (\`currentPreferencias.perfilPC.machineType === 'Computador Pessoal'\`):
     a.  **Propósito Principal** (se \`!currentPreferencias.perfilPC.purpose\`):
-        Pergunte: "Qual será o uso principal? (Jogos, Trabalho/Produtividade, Edição Criativa, Uso Geral, HTPC)"
+        Pergunte: "Qual será o uso principal? (Jogos, Trabalho/Produtividade, Edição Criativa, Uso Geral)"
     
-    b.  **Sub-fluxos por Propósito**:
-        
-        #### Jogos (\`currentPreferencias.perfilPC.purpose === 'Jogos'\`):
-        -   Se \`!currentPreferencias.perfilPC.gamingType\`: "Que tipo de jogos você pretende jogar? (Competitivos/eSports, AAA/High-End, VR, Casual)"
-        -   Se \`currentPreferencias.perfilPC.gamingType\` e \`!currentPreferencias.perfilPC.monitorSpecs\`: "Qual resolução e taxa de atualização do seu monitor? (Ex: 1080p/60Hz, 1440p/144Hz, 4K/60Hz+)"
-        -   Se \`currentPreferencias.perfilPC.monitorSpecs\` e \`!currentPreferencias.perfilPC.peripheralsNeeded\`: "Precisa de periféricos específicos para jogos incluídos no orçamento? (Sim/Não)"
-        
-        #### Trabalho/Produtividade (\`currentPreferencias.perfilPC.purpose === 'Trabalho/Produtividade'\`):
-        -   Se \`!currentPreferencias.perfilPC.workField\`: "Qual sua área de trabalho? (Desenvolvimento, Design Gráfico, Engenharia/3D, Escritório, Ciência de Dados)"
-        -   Se \`currentPreferencias.perfilPC.workField\` e \`!currentPreferencias.perfilPC.softwareUsed\`: "Quais softwares principais você usa ou pretende usar? (Liste os mais exigentes que impactam a escolha de hardware)"
-        -   Se \`currentPreferencias.perfilPC.softwareUsed\` e \`!currentPreferencias.perfilPC.multipleMonitors\`: "Precisa de suporte para múltiplos monitores? (Sim/Não)"
-        -   Se \`currentPreferencias.perfilPC.multipleMonitors === 'Sim'\` e \`!currentPreferencias.perfilPC.monitorCount\`: "Quantos monitores você pretende usar?"
-
-        #### Edição Criativa (\`currentPreferencias.perfilPC.purpose === 'Edição Criativa'\`):
-        -   Se \`!currentPreferencias.perfilPC.creativeEditingType\`: "Qual tipo de edição criativa você fará principalmente? (Vídeo, Foto, Áudio, Modelagem 3D)"
-        -   Se \`currentPreferencias.perfilPC.creativeEditingType\` e \`!currentPreferencias.perfilPC.creativeWorkResolution\`: "Qual a resolução de trabalho principal para seus projetos de edição? (Ex: HD, 4K, 8K)"
-        -   Se \`currentPreferencias.perfilPC.creativeWorkResolution\` e \`!currentPreferencias.perfilPC.projectSize\`: "Qual o tamanho médio dos seus projetos? (Pequeno, Médio, Grande - isso ajuda a estimar RAM e armazenamento)"
-
-    c.  **Experiência do Usuário e Estética** (após sub-fluxos de propósito, se ainda não perguntado para Computador Pessoal):
-        -   Se \`!currentPreferencias.buildExperience\`: "Você prefere montar o PC sozinho ou gostaria de um sistema já montado/pré-configurado (se disponível)?"
-        -   Se \`currentPreferencias.buildExperience\` e \`!currentPreferencias.brandPreference\`: "Tem preferência por marcas específicas de componentes, como AMD, Intel, NVIDIA, ou outras?"
-        -   Se \`currentPreferencias.brandPreference\` e \`!currentPreferencias.aestheticsImportance\`: "Qual a importância da estética para você? (Ex: RGB, design do gabinete, cabos organizados - Baixa, Média, Alta)"
-
-    ### Para Servidores (\`currentPreferencias.perfilPC.machineType === 'Servidor'\`):
-    a.  **Tipo de Servidor** (se \`!currentPreferencias.perfilPC.serverType\`):
-        Pergunte: "Qual o propósito principal do servidor? (Arquivos, Web, Banco de Dados, Virtualização, Render Farm, Outro)"
-    b.  (Demais perguntas sobre servidor, e.g. serverUsers, serverRedundancy, serverUptime, serverScalability)
-
-    ### Para Estação de Trabalho (\`currentPreferencias.perfilPC.machineType === 'Estação de Trabalho'\`):
-    -   Se \`!currentPreferencias.perfilPC.workField\` e \`!currentPreferencias.perfilPC.creativeEditingType\`: "Qual será a principal carga de trabalho desta Estação de Trabalho? (Ex: CAD/Engenharia, Análise de Dados Pesada, Renderização 3D Profissional, Desenvolvimento com VMs)"
-    -   (Demais perguntas)
-
-    ### Para Máquinas de Mineração (\`currentPreferencias.perfilPC.machineType === 'Máquina para Mineração'\`):
-    -   (Perguntas sobre miningCrypto, miningHashrate, miningGpuCount, miningEnergyCost)
-
-    ### Para PC para Streaming (\`currentPreferencias.perfilPC.machineType === 'PC para Streaming'\`):
-    -    Se \`!currentPreferencias.perfilPC.purpose\`: "Este PC será exclusivamente para streaming ou também para jogar/trabalhar enquanto faz stream? (Dedicado para Stream, Jogos+Stream, Trabalho+Stream)"
-    -   (Demais perguntas)
-    
-    ### Para Tipos Não Previstos/Customizados (\`currentPreferencias.perfilPC.isCustomType === true\`):
-    (Este fluxo é ativado se o machineType inicial não for reconhecido e for marcado como customizado)
-    1.  Se \`!currentPreferencias.perfilPC.customDescription\`: "Você pode descrever com mais detalhes o que essa máquina precisa fazer de especial?"
-    2.  (Demais perguntas sobre customDescription, referenceSystems, criticalComponents, etc.)
-
+    b.  **Sub-fluxos por Propósito** (faça apenas a pergunta mais relevante):
+        - Para **Jogos**: Se \`!currentPreferencias.perfilPC.gamingType\`, pergunte "Que tipo de jogos? (Competitivos/eSports, AAA/High-End)" e se \`!currentPreferencias.perfilPC.monitorSpecs\`, inclua "Qual a resolução e taxa de atualização do seu monitor? (Ex: 1080p/144Hz)".
+        - Para **Trabalho/Produtividade**: Se \`!currentPreferencias.perfilPC.workField\`, pergunte "Qual sua área de trabalho? (Desenvolvimento, Design Gráfico, Engenharia/3D)" e se \`!currentPreferencias.perfilPC.softwareUsed\`, inclua "Quais os softwares mais exigentes que você usa?".
+        - Para **Edição Criativa**: Se \`!currentPreferencias.perfilPC.creativeEditingType\`, pergunte "Qual tipo de edição? (Vídeo, Foto, 3D)" e se \`!currentPreferencias.perfilPC.creativeWorkResolution\`, inclua "Qual a resolução principal de trabalho? (HD, 4K, 8K)".
 
 3.  **Orçamento** (coletar após entender as necessidades principais, se \`!currentPreferencias.orcamento\` e \`!currentPreferencias.orcamentoRange\`):
-    Pergunte: "Com base no que conversamos, qual faixa de orçamento você tem em mente para esta máquina em BRL (Reais)? (Ex: Econômico [até R$4000], Médio [R$4000-R$8000], High-End [R$8000+], ou se preferir, diga um valor específico para 'Personalizar')"
+    Pergunte: "Qual faixa de orçamento você tem em mente em BRL (Reais)? (Ex: Econômico [até R$4000], Médio [R$4000-R$8000], High-End [R$8000+], ou um valor específico)"
 
-4.  **Permissão de Localização** (após orçamento, se \`!currentPreferencias.ambiente.cidade\` E a pergunta ainda não foi feita E \`!currentPreferencias.ambiente.temperaturaMediaCidade\`):
-    Pergunte EXATAMENTE: "Para ajudar com as condições climáticas e otimizar as sugestões de refrigeração e gabinete, você permite que detectemos sua localização automaticamente?" 
+4.  **Permissão de Localização** (após orçamento, se \`!currentPreferencias.ambiente.cidade\` E a pergunta ainda não foi feita):
+    Pergunte EXATAMENTE: "Para ajudar a otimizar a refrigeração, você permite que detectemos sua localização para verificar o clima?"
 
-5.  **Condições Ambientais Específicas do Local do PC** (se \`currentPreferencias.ambiente.cidade\` existe E os detalhes do local do PC ainda não foram coletados COMPLETAMENTE):
-    *   Se \`!currentPreferencias.ambiente.ventilacaoLocalPC\`: "Sobre o local específico onde a máquina será usada: ele possui ar condicionado, ventilador, ou a ventilação depende principalmente da temperatura externa? (Responda com 'Ar Condicionado', 'Ventilador', 'Temperatura Externa' ou 'Outro')"
-    *   Se \`currentPreferencias.ambiente.ventilacaoLocalPC\` E \`!currentPreferencias.ambiente.nivelPoeiraLocalPC\`: "E quanto ao nível de poeira nesse local específico onde a máquina ficará? (Responda com Baixa, Média ou Alta)"
-    *   Se \`currentPreferencias.ambiente.ventilacaoLocalPC\` E \`currentPreferencias.ambiente.nivelPoeiraLocalPC\` E \`!currentPreferencias.ambiente.comodoPC\`: "Em qual cômodo a máquina será utilizada principalmente? (Ex: Quarto, Sala, Escritório)"
+5.  **Preferências Finais (Opcional)** (após as etapas anteriores):
+    Se os campos críticos estiverem preenchidos e o campo \`preferences\` ainda não foi alterado, pergunte de forma aberta: "Ótimo. Para finalizar, você tem alguma outra preferência importante que eu deva saber? Isso pode incluir estética (como iluminação RGB), tamanho específico do gabinete (compacto, grande), nível de ruído (silencioso), ou necessidade de Wi-Fi/Bluetooth." Se o usuário disser 'não' ou pular, prossiga para a validação.
 
-6.  **Condições Ambientais Gerais** (se permissão de localização foi negada/falhou, \`!currentPreferencias.ambiente.cidade\`, OU para tipos como Servidor/Mineração se não perguntado antes, E as condições gerais ainda não foram coletadas COMPLETAMENTE):
-    *   Se \`!currentPreferencias.ambiente.controleTemperaturaGeral\`: "O ambiente geral onde a máquina ficará tem algum controle de temperatura, como ar condicionado ou é mais dependente da ventilação natural?"
-    *   Se \`currentPreferencias.ambiente.controleTemperaturaGeral\` E \`!currentPreferencias.ambiente.nivelPoeiraGeral\`: "Qual o nível de poeira geral nesse ambiente? (Baixa, Média, Alta)"
-    *   Para Mineração (se não perguntado e relevante, e \`!currentPreferencias.preferences\` ou similar não cobre): "O local de mineração é bem ventilado, especialmente para as GPUs?" (Pode ir para \`preferences\` ou \`ambiente.ventilacaoLocalPC\`)
+6.  **Validação Final e Conclusão**:
+    Quando os campos CRÍTICOS (machineType, purpose/workField, budget) estiverem preenchidos, resuma brevemente:
+    "Ok, coletei as informações principais: [Liste 2-3 pontos chave]. Está tudo correto para eu gerar uma recomendação de build?"
 
-7.  **Preferências Adicionais Gerais** (após as etapas anteriores):
-    - Se \`!currentPreferencias.caseSize\`: "Você tem preferência pelo tamanho do gabinete? (Ex: Mini-ITX para compacto, Micro-ATX, ATX padrão, Full Tower para máximo espaço)"
-    - Se \`currentPreferencias.caseSize\` e \`!currentPreferencias.noiseLevel\`: "Qual o nível de ruído aceitável para você? (Silencioso, Moderado, Indiferente)"
-    - Se \`currentPreferencias.noiseLevel\` e \`!currentPreferencias.specificPorts\`: "Há necessidade de portas específicas em grande quantidade ou tipo? (Ex: Thunderbolt, muitas USB-A, USB-C frontal)"
-    - Se todos acima preenchidos ou se um campo genérico \`preferences\` ainda não foi tocado ou precisa de mais: "Alguma outra preferência ou detalhe importante que não cobrimos? (Pode ser sobre Wi-Fi, Bluetooth, sistema operacional desejado, etc.)" (Armazenar em \`preferences\`)
-
-8.  **Validação Final e Conclusão**:
-    Se todos os campos CRÍTICOS para o \`currentPreferencias.perfilPC.machineType\` e seu fluxo parecerem preenchidos (Orçamento é quase sempre crítico), resuma brevemente:
-    "Ok, coletei as seguintes informações principais: [Liste 2-3 pontos chave de \`currentPreferencias\` como machineType, purpose/serverType, budgetRange]. Está tudo correto e podemos prosseguir para gerar uma recomendação de build com base nisso e nos outros detalhes que você me passou?"
-
-REGRAS DE INTERAÇÃO: (Manter regras existentes)
-- Faça UMA pergunta por vez.
-- Adapte o vocabulário.
-- Confirme informações ambíguas.
-- Ofereça exemplos.
-- Mantenha o foco no fluxo lógico.
-- Responda APENAS com a sua próxima pergunta ou a validação final.
-- Se o usuário fornecer múltiplas informações, processe-as e faça a PRÓXIMA pergunta.
+REGRAS DE INTERAÇÃO:
+- Faça UMA pergunta por vez. Seja direto e conciso.
+- EVITE fazer perguntas sobre detalhes que podem ser inferidos (como tamanho do gabinete ou nível de ruído), a menos que o usuário os mencione. Pergunte sobre eles de forma opcional na etapa 5.
+- Se o usuário fornecer múltiplas informações, processe-as e faça a PRÓXIMA pergunta lógica no fluxo.
+- Responda APENAS com sua próxima pergunta ou a validação final.
 `;
 
   try {
@@ -255,17 +199,32 @@ REGRAS DE INTERAÇÃO: (Manter regras existentes)
         updatedPreferencias.ambiente.nivelPoeiraGeral = parseGenericOptions(lowerInput, FEMININE_DUST_LEVEL_MAP) as 'Baixa' | 'Média' | 'Alta';
     }
 
-    // 7. Preferências Adicionais Gerais
-    if (lastAiQuestionText.includes("tamanho do gabinete") && !updatedPreferencias.caseSize) {
-        const caseSizeMap: Record<string, CaseSizeType> = { /* ... */ };
-        updatedPreferencias.caseSize = parseGenericOptions(lowerInput, caseSizeMap) as CaseSizeType;
+    // 7. Preferências Adicionais Gerais (parsing)
+    if (lastAiQuestionText.includes("preferência importante")) {
+        if (!updatedPreferencias.preferences) updatedPreferencias.preferences = userInput;
+        
+        const caseSizeMap: Record<string, CaseSizeType> = { "compacto": 'Mini-ITX', "pequeno": 'Micro-ATX', "padrão": 'ATX', "grande": 'Full Tower' };
+        updatedPreferencias.caseSize = parseGenericOptions(lowerInput, caseSizeMap) as CaseSizeType || updatedPreferencias.caseSize;
+
+        const noiseLevelMap: Record<string, NoiseLevelType> = { "silencioso": 'Silencioso', "quieto": 'Silencioso', "moderado": 'Moderado', "indiferente": 'Indiferente' };
+        updatedPreferencias.noiseLevel = parseGenericOptions(lowerInput, noiseLevelMap) as NoiseLevelType || updatedPreferencias.noiseLevel;
+        
+        const aestheticsMap: Record<string, AestheticsImportance> = { "rgb": 'Alta', "luzes": 'Alta', "estética": 'Média', "aparência": 'Média', "discreto": 'Baixa' };
+        updatedPreferencias.aestheticsImportance = parseGenericOptions(lowerInput, aestheticsMap) as AestheticsImportance || updatedPreferencias.aestheticsImportance;
     }
-    // ...etc para noiseLevel, specificPorts, preferences
+
 
     return { aiResponse: aiText, updatedPreferencias };
 
   } catch (error) {
     console.error("Erro ao chamar API Gemini (getChatbotResponse):", error);
+    const typedError = error as any;
+    if (typedError?.error?.code === 429 || String(typedError).includes('429')) {
+      return { 
+        aiResponse: "Estou recebendo muitas solicitações no momento. Por favor, aguarde alguns instantes antes de tentar novamente.", 
+        updatedPreferencias: currentPreferencias 
+      };
+    }
     return { aiResponse: "Desculpe, ocorreu um erro ao processar sua solicitação.", updatedPreferencias: currentPreferencias };
   }
 };
@@ -282,9 +241,9 @@ export const getBuildRecommendation = async (
 
   const componentSummary = availableComponents.map(c => ({
     id: c.id,
-    category: c.tipo, // Corrigido para tipo
-    name: c.nome,   // Corrigido para nome
-    price: c.preco, // Corrigido para preco
+    tipo: c.tipo,
+    nome: c.nome,
+    preco: c.preco,
     key_specs: `${c.especificacao.socket || c.especificacao.type || ''} ${c.especificacao.chipset || c.especificacao.capacity_gb || ''} ${c.especificacao.tdp || c.especificacao.wattage_w || ''}`.trim()
   }));
 
@@ -299,24 +258,13 @@ Requisitos do Usuário (PreferenciaUsuarioInput):
 
 - Perfil do PC:
   - Tipo de Máquina: ${requisitos.perfilPC.machineType || 'Não especificado'}
-  - É tipo customizado?: ${requisitos.perfilPC.isCustomType ? 'Sim' : 'Não'}
-  - Descrição Customizada: ${requisitos.perfilPC.customDescription || 'N/A'}
-  - (Incluir outros campos de perfilPC como purpose, gamingType, workField, serverType, etc.)
-  - Propósito Principal (se Computador Pessoal): ${requisitos.perfilPC.purpose || 'Não especificado'}
-  - Área de Trabalho (Produtividade/Estação): ${requisitos.perfilPC.workField || 'N/A'}
+  - Propósito Principal: ${requisitos.perfilPC.purpose || 'Não especificado'}
+  - Detalhes (Jogos/Trabalho/etc.): ${requisitos.perfilPC.gamingType || requisitos.perfilPC.workField || requisitos.perfilPC.creativeEditingType || 'N/A'}
   - Softwares Principais: ${requisitos.perfilPC.softwareUsed || 'N/A'}
 
-
 - Ambiente:
-  - Cidade: ${requisitos.ambiente.cidade ? `${requisitos.ambiente.cidade}${requisitos.ambiente.codigoPais ? ', ' + requisitos.ambiente.codigoPais : ''}` : 'Não detectada/informada'}
-  - Temperatura Média da Cidade: ${requisitos.ambiente.temperaturaMediaCidade !== undefined ? requisitos.ambiente.temperaturaMediaCidade + '°C' : 'N/A'}
-  - Temperatura Máxima da Cidade: ${requisitos.ambiente.temperaturaMaximaCidade !== undefined ? requisitos.ambiente.temperaturaMaximaCidade + '°C' : 'N/A'}
-  - Descrição do Clima na Cidade: ${requisitos.ambiente.descricaoClimaCidade || 'N/A'}
-  - Ventilação no Local do PC: ${requisitos.ambiente.ventilacaoLocalPC || 'Não especificado'}
-  - Nível de Poeira no Local do PC: ${requisitos.ambiente.nivelPoeiraLocalPC || 'Não especificado'}
-  - Cômodo do PC: ${requisitos.ambiente.comodoPC || 'Não especificado'}
-  - Controle de Temperatura (Geral): ${requisitos.ambiente.controleTemperaturaGeral || 'Ventilação natural'}
-  - Nível de Poeira (Geral): ${requisitos.ambiente.nivelPoeiraGeral || 'Média'}
+  - Cidade (Clima): ${requisitos.ambiente.cidade ? `${requisitos.ambiente.cidade}, Temp. Média: ${requisitos.ambiente.temperaturaMediaCidade}°C` : 'Não informado'}
+  - Local Específico do PC: Ventilação: ${requisitos.ambiente.ventilacaoLocalPC || 'Não informado'}, Poeira: ${requisitos.ambiente.nivelPoeiraLocalPC || 'Não informado'}
 
 - Preferências Gerais Adicionais:
   - Experiência de Montagem: ${requisitos.buildExperience || 'Não especificado'}
@@ -324,18 +272,20 @@ Requisitos do Usuário (PreferenciaUsuarioInput):
   - Importância da Estética: ${requisitos.aestheticsImportance || 'Não especificada'}
   - Tamanho do Gabinete: ${requisitos.caseSize || 'Não especificado'}
   - Nível de Ruído: ${requisitos.noiseLevel || 'Indiferente'}
-  - Portas Específicas: ${requisitos.specificPorts || 'Nenhuma'}
   - Outras Preferências (texto livre): ${requisitos.preferences || 'Nenhuma'}
 
-Componentes Disponíveis (ID, Categoria, Nome, Preço, Especificações Chave):
+Componentes Disponíveis (ID, Tipo, Nome, Preço, Especificações Chave):
 ${JSON.stringify(componentSummary, null, 2)}
 
-Instruções: (Manter instruções, mas garantir que referenciam os campos corretos de 'requisitos.perfilPC' e 'requisitos.ambiente')
-1.  Selecione um componente para cada categoria essencial.
-2.  Placa de Vídeo é essencial para 'Computador Pessoal' (Jogos, Edição Criativa), 'Estação de Trabalho', 'Máquina para Mineração', 'PC para Streaming'.
-3.  Cooler CPU é essencial.
-4.  Priorize compatibilidade e otimize para \`requisitos.perfilPC.machineType\` e seus sub-detalhes. Use \`requisitos.orcamento\` como guia.
-5.  Considere as CONDIÇÕES CLIMÁTICAS (\`requisitos.ambiente.temperaturaMediaCidade\`, etc.) e ambientais (\`requisitos.ambiente.ventilacaoLocalPC\`, etc.).
+Instruções:
+1.  Selecione UM componente para cada categoria essencial (CPU, Placa-mãe, RAM, Armazenamento, Fonte, Gabinete, Cooler CPU).
+2.  Placa de Vídeo (GPU) é OBRIGATÓRIA, exceto para Servidores de Arquivos/Web básicos.
+3.  Priorize compatibilidade (socket CPU/Mobo, tipo de RAM, etc.) e otimize para o \`purpose\` e \`orcamento\`.
+4.  Considere o CLIMA e o AMBIENTE para a refrigeração (gabinete e cooler). Ambientes quentes ou empoeirados precisam de melhor fluxo de ar e filtros.
+5.  Faça escolhas inteligentes para preferências não especificadas. Por exemplo:
+    - **Tamanho do Gabinete**: Se não especificado, escolha ATX Mid-Tower para a maioria. Para HTPC ou builds de escritório, considere Micro-ATX. Para multi-GPU ou refrigeração customizada, um Full Tower.
+    - **Nível de Ruído**: Se não especificado, priorize silêncio para HTPC e edição de áudio. Para jogos, o desempenho de refrigeração é mais importante que o silêncio absoluto.
+    - **Estética**: Se a importância for 'Baixa' ou não especificada, foque no custo-benefício e não em componentes com RGB.
 6.  Se o orçamento for insuficiente, explique no 'budgetNotes'.
 7.  Calcule o preço total. Forneça justificativa e avisos de compatibilidade.
 
@@ -364,6 +314,11 @@ Não inclua nenhum texto fora do bloco JSON.
 
   } catch (error) {
     console.error("Erro ao chamar API Gemini (getBuildRecommendation):", error);
+    const typedError = error as any;
+    if (typedError?.error?.code === 429 || String(typedError).includes('429')) {
+        throw new Error("O limite de solicitações da IA foi atingido. Por favor, aguarde um momento e tente gerar a recomendação novamente.");
+    }
+    
     // @ts-ignore
     if (error.response && error.response.text) {
        // @ts-ignore
