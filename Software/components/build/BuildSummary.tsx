@@ -1,10 +1,6 @@
 
 import React from 'react';
-<<<<<<< HEAD
-import { Build, SelectedComponent, PCComponent, AnamnesisData } from '../../types';
-=======
 import { Build, SelectedComponent, Componente, PreferenciaUsuarioInput } from '../../types'; // Tipos atualizados
->>>>>>> gustavo
 import Button from '../core/Button';
 import { MOCK_COMPONENTS } from '../../constants/components';
 
@@ -29,10 +25,6 @@ const ComponentItem: React.FC<{ component: SelectedComponent }> = ({ component }
   </li>
 );
 
-<<<<<<< HEAD
-const getDisplayKeyForSummary = (key: string): string => {
-    const map: Record<string, string> = {
-=======
 // Helper para exibir chaves de forma amigável no resumo da build
 const getDisplayKeyForSummary = (category: string, subKey: string): string => {
     const commonMap: Record<string, string> = {
@@ -45,36 +37,11 @@ const getDisplayKeyForSummary = (category: string, subKey: string): string => {
     if (category === 'root' && commonMap[subKey]) return commonMap[subKey];
 
     const perfilPCMap: Record<string, string> = {
->>>>>>> gustavo
         machineType: 'Tipo de Máquina', purpose: 'Propósito Principal', gamingType: 'Tipo de Jogos',
         monitorSpecs: 'Monitor (Jogos)', peripheralsNeeded: 'Periféricos (Jogos)',
         workField: 'Área de Trabalho', softwareUsed: 'Softwares Utilizados',
         multipleMonitors: 'Múltiplos Monitores', monitorCount: 'Qtd. Monitores',
         creativeEditingType: 'Tipo de Edição Criativa', creativeWorkResolution: 'Resolução (Edição)',
-<<<<<<< HEAD
-        projectSize: 'Tamanho Projetos (Edição)', buildExperience: 'Experiência de Montagem',
-        brandPreference: 'Preferência de Marcas', aestheticsImportance: 'Importância da Estética',
-        serverType: 'Tipo de Servidor', serverUsers: 'Usuários (Servidor)',
-        serverRedundancy: 'Redundância (Servidor)', serverUptime: 'Uptime (Servidor)',
-        serverScalability: 'Escalabilidade (Servidor)', miningCrypto: 'Criptomoedas',
-        miningHashrate: 'Hashrate (Mineração)', miningGpuCount: 'GPUs (Mineração)',
-        miningEnergyCost: 'Custo Energia (Mineração)', budget: 'Orçamento (Valor)', budgetRange: 'Faixa de Orçamento',
-        city: 'Cidade (Detectada)', countryCode: 'País (Detectado)', 
-        cityAvgTemp: 'Temp. Média Cidade', cityMaxTemp: 'Temp. Máx. Cidade', cityWeatherDescription: 'Clima na Cidade',
-        pcVentilation: 'Ventilação PC (Local)', pcDustLevel: 'Poeira PC (Local)',
-        pcRoomType: 'Cômodo PC (Local)', envTempControl: 'Controle Temp. (Geral)',
-        envDust: 'Poeira (Geral)', caseSize: 'Tamanho Gabinete',
-        noiseLevel: 'Nível de Ruído', specificPorts: 'Portas Específicas',
-        preferences: 'Preferências Adicionais', isCustomType: 'Tipo Customizado?',
-        customDescription: 'Descrição (Custom)', criticalComponents: 'Componentes Críticos (Custom)',
-        usagePatterns: 'Padrões de Uso (Custom)', physicalConstraints: 'Restrições Físicas (Custom)',
-        specialRequirements: 'Requisitos Especiais (Custom)', referenceSystems: 'Sistemas de Referência (Custom)',
-        envTemperature: 'Temperatura (Legado)', envHumidity: 'Umidade (Legado)', workType: 'Tipo de Trabalho (Legado)'
-    };
-    if (map[key]) return map[key];
-    let display = key.replace(/([A-Z])/g, ' $1'); // Add space before uppercase letters
-    return display.charAt(0).toUpperCase() + display.slice(1); // Capitalize first letter
-=======
         projectSize: 'Tamanho Projetos (Edição)', serverType: 'Tipo de Servidor', 
         serverUsers: 'Usuários (Servidor)', serverRedundancy: 'Redundância (Servidor)', 
         serverUptime: 'Uptime (Servidor)', serverScalability: 'Escalabilidade (Servidor)', 
@@ -116,7 +83,6 @@ const renderRequisitosData = (data: any, category: string, prefix = ''): JSX.Ele
         
         return <li key={prefix + key}><span className="font-medium">{getDisplayKeyForSummary(category, key)}:</span> {displayValue}</li>;
       });
->>>>>>> gustavo
 };
 
 
@@ -125,17 +91,7 @@ const BuildSummary: React.FC<BuildSummaryProps> = ({ build, isLoading, onSaveBui
     return (
       <div className="bg-secondary p-6 rounded-lg shadow-xl text-center">
         <h3 className="text-2xl font-semibold text-accent mb-4">Gerando sua build...</h3>
-<<<<<<< HEAD
-        <div className="animate-pulse">
-          <div className="h-8 bg-neutral-dark rounded w-3/4 mx-auto mb-4"></div>
-          <div className="h-6 bg-neutral-dark rounded w-1/2 mx-auto mb-6"></div>
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-16 bg-primary rounded-lg mb-3"></div>
-          ))}
-        </div>
-=======
         {/* ... (skeleton loading state) ... */}
->>>>>>> gustavo
       </div>
     );
   }
@@ -154,13 +110,6 @@ const BuildSummary: React.FC<BuildSummaryProps> = ({ build, isLoading, onSaveBui
     return MOCK_COMPONENTS.find(c => c.id === componentId) as Componente | undefined;
   };
 
-<<<<<<< HEAD
-  const detailedComponents = build.components.map(c => {
-    if (c.name && c.price) return c; 
-    const fullDetails = getFullComponentDetails(c.id);
-    return fullDetails || c; 
-  }) as SelectedComponent[];
-=======
   const detailedComponents = build.componentes.map(c => {
     // Se 'c' já tem nome e preço, é provável que seja um objeto completo.
     // Senão, tenta buscar detalhes completos do MOCK_COMPONENTS.
@@ -168,7 +117,6 @@ const BuildSummary: React.FC<BuildSummaryProps> = ({ build, isLoading, onSaveBui
     const fullDetails = getFullComponentDetails(c.id);
     return fullDetails ? { ...fullDetails, ...c } as SelectedComponent : c as SelectedComponent; 
   });
->>>>>>> gustavo
 
   const totalPrice = detailedComponents.reduce((sum, component) => sum + (component.preco || 0), 0);
 
@@ -225,23 +173,6 @@ const BuildSummary: React.FC<BuildSummaryProps> = ({ build, isLoading, onSaveBui
          <div className="mt-6 p-4 bg-primary/50 border border-neutral-dark/50 rounded-md text-xs max-h-60 overflow-y-auto">
             <h4 className="font-semibold text-accent mb-1">Requisitos Usados para esta Build:</h4>
             <ul className="list-disc list-inside space-y-0.5">
-<<<<<<< HEAD
-                {Object.entries(build.requirements)
-                  .filter(([key, value]) => value !== undefined && value !== null && value !== '' && !(typeof value === 'boolean' && !value))
-                  .sort(([keyA], [keyB]) => getDisplayKeyForSummary(keyA).localeCompare(getDisplayKeyForSummary(keyB)))
-                  .map(([key, value]) => {
-                    let displayValue = String(value);
-                    if (typeof value === 'boolean') displayValue = value ? 'Sim' : 'Não';
-                    if (key === 'cityAvgTemp' || key === 'cityMaxTemp') displayValue += '°C';
-                    if (key === 'budget' && typeof value === 'number') displayValue = `R$ ${value.toFixed(2)}`;
-
-                    return (
-                        <li key={key}>
-                            <span className="font-medium">{getDisplayKeyForSummary(key)}:</span> {displayValue}
-                        </li>
-                    );
-                })}
-=======
                 {renderRequisitosData(build.requisitos, 'root', 'req-')}
                 {build.requisitos.perfilPC && Object.keys(build.requisitos.perfilPC).length > 0 && (
                   <>
@@ -259,7 +190,6 @@ const BuildSummary: React.FC<BuildSummaryProps> = ({ build, isLoading, onSaveBui
                     </ul>
                   </>
                 )}
->>>>>>> gustavo
             </ul>
         </div>
        )}

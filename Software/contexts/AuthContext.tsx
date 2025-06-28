@@ -1,16 +1,15 @@
+
 import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
-import { User, UserWithPassword } from '../types';
+import { User } from '../types'; // User agora tem 'nome'
 import { useNavigate, useLocation } from 'react-router-dom';
 
-const USERS_DB_KEY = 'codeTugaBuilds_users_db';
 
 interface AuthContextType {
   currentUser: User | null;
   isLoading: boolean;
-  login: (email: string, pass: string) => Promise<void>;
+  login: (email: string, pass: string) => Promise<void>; // Simplificado para email/senha
   logout: () => void;
-  register: (nome: string, email: string, pass: string) => Promise<void>;
-  updateUser: (userId: string, updates: Partial<Pick<UserWithPassword, 'nome' | 'email' | 'password_mock'>>) => Promise<void>;
+  register: (nome: string, email: string, pass: string) => Promise<void>; // Adicionado pass, nome já estava
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,146 +37,62 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const handleAuthSuccessNavigation = () => {
     const navState = location.state as any;
     const fromLocation = navState?.from;
-<<<<<<< HEAD
-    const pendingActionFromLogin = fromLocation?.state?.pendingAction;
-    const originalPath = fromLocation?.pathname || '/dashboard';
-
-    if (pendingActionFromLogin && (originalPath === '/build' || originalPath.startsWith('/build/'))) {
-        // If there was a pending action (save/export) and user was on BuildPage
-        navigate(originalPath, { replace: true, state: { fromLogin: true, action: pendingActionFromLogin } });
-    } else {
-        // Default navigation
-=======
-    const pendingActionFromLogin = navState?.pendingAction;
+    // const pendingActionFromLogin = fromLocation?.state?.pendingAction; // Ajustado para pegar de navState
+    const pendingActionFromLogin = navState?.pendingAction; // Pegar pendingAction diretamente do state passado para /login ou /register
     const originalPath = fromLocation?.pathname || '/dashboard';
 
 
     if (pendingActionFromLogin && (originalPath === '/build' || originalPath.startsWith('/build/'))) {
         navigate(originalPath, { replace: true, state: { fromLogin: true, action: pendingActionFromLogin } });
     } else {
->>>>>>> gustavo
         navigate(originalPath, { replace: true });
     }
   };
 
-<<<<<<< HEAD
-  const login = useCallback(async (nameOrEmail: string, emailOrPassword?: string) => { // Adjusted for flexibility
+  // Login agora usa email e password (mock)
+  const login = useCallback(async (email: string, _password?: string) => {
     setIsLoading(true);
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 500));
     
-    // Determine actual name and email based on how it's called
-    // In current AuthPage, name is not sent for login, email is in 'nameOrEmail', password in 'emailOrPassword'
-    // For simplicity, we'll use nameOrEmail as the email if emailOrPassword is provided (login scenario)
-    // If only nameOrEmail is provided (potentially registration scenario), it's the name.
-    // This is a bit of a hack due to simplified login, ideally login would only take email/password.
-    const email = emailOrPassword ? nameOrEmail : 'user@example.com'; // Mock email if not passed explicitly for login
-    const name = emailOrPassword ? 'Usuário' : nameOrEmail; // Mock name if only email/pass passed
+    // Simular busca de usuário. Em um app real, buscaria pelo email e validaria a senha.
+    // Para este exemplo, se o email for "user@example.com", o login é bem-sucedido.
+    // O nome é mockado ou poderia ser recuperado de um "banco de dados" mock.
+    const mockUserName = email.startsWith("test") ? email.split("@")[0] : "Usuário Teste";
 
-    const user: User = { id: Date.now().toString(), name, email };
+    const user: User = { id: Date.now().toString(), nome: mockUserName, email }; // Usar 'nome'
     setCurrentUser(user);
     localStorage.setItem('currentUser', JSON.stringify(user));
-=======
-  const login = useCallback(async (email: string, pass: string) => {
-    setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-
-    const usersDbStr = localStorage.getItem(USERS_DB_KEY);
-    const usersDb: UserWithPassword[] = usersDbStr ? JSON.parse(usersDbStr) : [];
-    
-    const foundUser = usersDb.find(u => u.email.toLowerCase() === email.toLowerCase());
-
-    if (!foundUser || foundUser.password_mock !== pass) {
-        setIsLoading(false);
-        throw new Error("Email ou senha inválidos.");
-    }
-
-    const { password_mock, ...userForSession } = foundUser;
-    setCurrentUser(userForSession);
-    localStorage.setItem('currentUser', JSON.stringify(userForSession));
->>>>>>> gustavo
     setIsLoading(false);
     handleAuthSuccessNavigation();
   }, [navigate, location.state]);
 
-  const register = useCallback(async (nome: string, email: string, pass: string) => {
+  // Register agora usa nome, email e password (mock)
+  const register = useCallback(async (nome: string, email: string, _password?: string) => {
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-
-    const usersDbStr = localStorage.getItem(USERS_DB_KEY);
-    const usersDb: UserWithPassword[] = usersDbStr ? JSON.parse(usersDbStr) : [];
-
-    if (usersDb.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    if (email === 'taken@example.com') {
         setIsLoading(false);
-        throw new Error("Este email já está cadastrado.");
+        throw new Error("Email já cadastrado.");
     }
-
-    const newUser: UserWithPassword = {
-        id: Date.now().toString(),
-        nome,
-        email,
-        password_mock: pass
-    };
-
-    usersDb.push(newUser);
-    localStorage.setItem(USERS_DB_KEY, JSON.stringify(usersDb));
-
-    const { password_mock, ...userForSession } = newUser;
-    setCurrentUser(userForSession);
-    localStorage.setItem('currentUser', JSON.stringify(userForSession));
+    const user: User = { id: Date.now().toString(), nome, email }; // Usar 'nome'
+    setCurrentUser(user);
+    localStorage.setItem('currentUser', JSON.stringify(user));
     setIsLoading(false);
     handleAuthSuccessNavigation();
   }, [navigate, location.state]);
-<<<<<<< HEAD
-=======
-
-  const updateUser = useCallback(async (userId: string, updates: Partial<Pick<UserWithPassword, 'nome' | 'email' | 'password_mock'>>) => {
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-    
-    const usersDbStr = localStorage.getItem(USERS_DB_KEY);
-    const usersDb: UserWithPassword[] = usersDbStr ? JSON.parse(usersDbStr) : [];
-    
-    const userIndex = usersDb.findIndex(u => u.id === userId);
-
-    if (userIndex === -1) {
-      throw new Error("Usuário não encontrado.");
-    }
-
-    // Check for email collision
-    if (updates.email && usersDb.some(u => u.email.toLowerCase() === updates.email!.toLowerCase() && u.id !== userId)) {
-        throw new Error("Este email já está em uso por outra conta.");
-    }
-    
-    // Apply updates to the user in the DB
-    const originalUser = usersDb[userIndex];
-    const updatedUserInDb = { ...originalUser, ...updates };
-    usersDb[userIndex] = updatedUserInDb;
-    localStorage.setItem(USERS_DB_KEY, JSON.stringify(usersDb));
-
-    // Update the current session user
-    const { password_mock, ...userForSession } = updatedUserInDb;
-    setCurrentUser(userForSession);
-    localStorage.setItem('currentUser', JSON.stringify(userForSession));
-  }, []);
->>>>>>> gustavo
 
 
   const logout = useCallback(() => {
     setCurrentUser(null);
     localStorage.removeItem('currentUser');
-<<<<<<< HEAD
-    sessionStorage.removeItem('proceededAnonymously'); // Clear this on logout
-    // also clear pending build info if any, though it should be cleared by BuildPage
-=======
     sessionStorage.removeItem('proceededAnonymously');
->>>>>>> gustavo
     sessionStorage.removeItem('pendingBuild'); 
     sessionStorage.removeItem('pendingAiNotes');
     navigate('/');
   }, [navigate]);
 
   return (
-    <AuthContext.Provider value={{ currentUser, isLoading, login, logout, register, updateUser }}>
+    <AuthContext.Provider value={{ currentUser, isLoading, login, logout, register }}>
       {children}
     </AuthContext.Provider>
   );
@@ -189,8 +104,4 @@ export const useAuth = (): AuthContextType => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-<<<<<<< HEAD
 };
-=======
-};
->>>>>>> gustavo

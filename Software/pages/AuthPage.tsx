@@ -1,11 +1,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-<<<<<<< HEAD
-import { Link, useNavigate, useLocation } from 'react-router-dom'; // Import useLocation
-=======
 import { Link, useNavigate, useLocation } from 'react-router-dom';
->>>>>>> gustavo
 import Button from '../components/core/Button';
 import LoadingSpinner from '../components/core/LoadingSpinner';
 
@@ -20,13 +16,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const { login, register, isLoading } = useAuth();
-<<<<<<< HEAD
-  const navigate = useNavigate();
-  const location = useLocation(); // Get current location object
-=======
   // const navigate = useNavigate(); // Não é mais necessário aqui, AuthContext cuida da navegação
   const location = useLocation(); 
->>>>>>> gustavo
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

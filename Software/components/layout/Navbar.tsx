@@ -27,7 +27,7 @@ const Navbar: React.FC = () => {
               <Link to="/dashboard" className="text-neutral hover:text-accent transition-colors px-3 py-2 rounded-md text-sm font-medium">
                 Painel
               </Link>
-              <Link to="/build" state={{ newBuild: true }} className="text-neutral hover:text-accent transition-colors px-3 py-2 rounded-md text-sm font-medium">
+              <Link to="/build" className="text-neutral hover:text-accent transition-colors px-3 py-2 rounded-md text-sm font-medium">
                 Nova Montagem
               </Link>
               <span className="text-neutral-dark text-sm hidden md:block">Olá, {currentUser.nome}!</span> {/* Alterado para currentUser.nome */}

@@ -27,22 +27,11 @@ const BuildPage: React.FC = () => {
   const [aiNotes, setAiNotes] = useState<string | undefined>(undefined);
   const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
   const [exportedText, setExportedText] = useState<string>('');
-  const [isViewingSavedBuild, setIsViewingSavedBuild] = useState<boolean>(false);
 
   const [isAuthInfoModalOpen, setIsAuthInfoModalOpen] = useState<boolean>(false);
   const [pendingActionForAuth, setPendingActionForAuth] = useState<'save' | 'export' | null>(null);
   const hasProceededAnonymously = useRef<boolean>(sessionStorage.getItem(SESSION_PROCEEDED_ANONYMOUSLY_KEY) === 'true');
 
-  const resetBuildState = useCallback(() => {
-    setPreferencias(null);
-    setCurrentBuild(null);
-    setError(null);
-    setAiNotes(undefined);
-    setIsViewingSavedBuild(false);
-    sessionStorage.removeItem(SESSION_PENDING_BUILD_KEY);
-    sessionStorage.removeItem(SESSION_PENDING_AI_NOTES_KEY);
-    setPendingActionForAuth(null);
-  }, []);
 
   const executeActualSaveBuild = useCallback((buildToSave: Build) => {
     if (!currentUser) {
@@ -80,6 +69,7 @@ const BuildPage: React.FC = () => {
 
     if(buildToExport.requisitos){
       text += `\nRequisitos:\n`;
+      // Função auxiliar para formatar chaves aninhadas
       const formatRequisitos = (obj: any, indent = "") => {
         for (const key in obj) {
           if (obj.hasOwnProperty(key) && obj[key] !== undefined && obj[key] !== null && obj[key] !== '') {
@@ -110,42 +100,6 @@ const BuildPage: React.FC = () => {
     setIsExportModalOpen(true);
   }, []); 
 
-  // Effect to handle loading/resetting the build state based on URL/navigation
-  useEffect(() => {
-    const pathParts = location.pathname.split('/');
-    const buildId = pathParts.length > 2 && pathParts[1] === 'build' ? pathParts[2] : null;
-
-    if (location.state?.newBuild) {
-      resetBuildState();
-      navigate('/build', { replace: true }); // Clean state from URL history
-      return;
-    }
-
-    if (buildId) {
-      if (currentBuild?.id === buildId) return; // Already viewing this build
-
-      if (currentUser) {
-        setIsLoading(true);
-        const savedBuildsStr = localStorage.getItem(`savedBuilds_${currentUser.id}`);
-        const savedBuilds: Build[] = savedBuildsStr ? JSON.parse(savedBuildsStr) : [];
-        const foundBuild = savedBuilds.find(b => b.id === buildId);
-
-        if (foundBuild) {
-          setCurrentBuild(foundBuild);
-          setPreferencias(foundBuild.requisitos || { perfilPC: {} as PerfilPCDetalhado, ambiente: {} as Ambiente });
-          setAiNotes(undefined);
-          setError(null);
-          setIsViewingSavedBuild(true);
-        } else {
-          setError(`A build com o ID '${buildId}' não foi encontrada ou pertence a outro usuário.`);
-          resetBuildState();
-        }
-        setIsLoading(false);
-      }
-    }
-  }, [location.pathname, location.state, currentUser, currentBuild?.id, resetBuildState, navigate]);
-
-  // Effect to handle auth modal and post-login actions
   useEffect(() => {
     const pathParts = location.pathname.split('/');
     const buildIdFromPath = pathParts.length > 2 && pathParts[1] === 'build' ? pathParts[2] : null;
@@ -187,6 +141,7 @@ const BuildPage: React.FC = () => {
         } catch (e) {
             console.error("Error processing pending build:", e);
             setError("Erro ao processar build pendente.");
+            // Clear session items on error during processing
             sessionStorage.removeItem(SESSION_PENDING_BUILD_KEY);
             sessionStorage.removeItem(SESSION_PENDING_AI_NOTES_KEY);
             setPendingActionForAuth(null);
@@ -212,13 +167,13 @@ const BuildPage: React.FC = () => {
   };
   
   const handleAnamnesisComplete = useCallback((data: PreferenciaUsuarioInput) => {
-    setPreferencias(data);
+    setPreferencias(data); // Salva as preferências completas
     setIsLoading(true);
     setError(null);
     setAiNotes(undefined);
     setCurrentBuild(null); 
-    setIsViewingSavedBuild(false);
     
+    // Assegurar que MOCK_COMPONENTS seja tratado como Componente[] para o serviço
     const componentesDisponiveis = MOCK_COMPONENTS as unknown as Componente[];
 
     getBuildRecommendation(data, componentesDisponiveis)
@@ -226,7 +181,10 @@ const BuildPage: React.FC = () => {
         if (recommendation) {
           const recommendedCompDetails: Componente[] = componentesDisponiveis.filter(c => recommendation.recommendedComponentIds.includes(c.id));
           
-          const selectedComponents: SelectedComponent[] = recommendedCompDetails.map(comp => ({ ...comp }));
+          // Mapear para SelectedComponent[], que é o que Build espera (embora possa ser simplificado para Componente[] no futuro)
+          const selectedComponents: SelectedComponent[] = recommendedCompDetails.map(comp => ({
+            ...comp, // Copia todos os campos de Componente
+          }));
 
           const totalPrice = selectedComponents.reduce((sum, comp) => sum + (comp.preco || 0), 0);
 
@@ -248,7 +206,7 @@ const BuildPage: React.FC = () => {
       })
       .catch(err => {
         console.error("Error fetching build recommendation:", err);
-        setError(err.message || 'Ocorreu um erro ao contatar o serviço de IA. Por favor, tente novamente.');
+        setError('Ocorreu um erro ao contatar o serviço de IA. Por favor, tente novamente.');
         setCurrentBuild(null);
       })
       .finally(() => setIsLoading(false));
@@ -287,56 +245,7 @@ const BuildPage: React.FC = () => {
     setPendingActionForAuth(null);
     sessionStorage.removeItem(SESSION_PENDING_BUILD_KEY);
     sessionStorage.removeItem(SESSION_PENDING_AI_NOTES_KEY);
-  };
-
-  const renderContent = () => {
-    if (isLoading) {
-      return (
-        <div className="text-center py-10">
-          <LoadingSpinner size="lg" text={isViewingSavedBuild ? 'Carregando sua build...' : 'IA está pensando na sua build...'} />
-        </div>
-      );
-    }
-    
-    if (error) {
-      return (
-        <div className="my-6 p-6 bg-red-800/90 text-red-100 rounded-lg text-center shadow-xl">
-          <h3 className="text-2xl font-semibold mb-3">Oops! Algo deu errado.</h3>
-          <p className="mb-4">{error}</p>
-          <Button onClick={handleTryAgain} variant="secondary" size="lg">
-            Tentar Novamente com a IA
-          </Button>
-        </div>
-      );
-    }
-
-    if (currentBuild) {
-      return (
-        <>
-          <BuildSummary
-              build={currentBuild}
-              isLoading={isLoading} 
-              onSaveBuild={triggerSaveBuild}
-              onExportBuild={triggerExportBuild}
-              aiRecommendationNotes={aiNotes}
-            />
-          {isViewingSavedBuild && (
-            <div className="mt-6 text-center">
-              <Button
-                  onClick={() => navigate('/build', { state: { newBuild: true } })}
-                  variant="secondary"
-                  size="lg"
-              >
-                  Iniciar Nova Montagem
-              </Button>
-            </div>
-          )}
-        </>
-      );
-    }
-
-    // Default to chatbot
-    return <ChatbotAnamnesis onAnamnesisComplete={handleAnamnesisComplete} initialAnamnesisData={preferencias || { perfilPC: {} as PerfilPCDetalhado, ambiente: {} as Ambiente }} />;
+    // setPreferencias(null); // Descomente para limpar o chat e recomeçar do zero
   };
 
   return (
@@ -348,7 +257,8 @@ const BuildPage: React.FC = () => {
           title={pendingActionForAuth ? "Login Necessário" : "Aviso: Montagem Anônima"}
           size="md"
         >
-          <p className="text-neutral-dark mb-6">
+          {/* ... (conteúdo do modal como antes) ... */}
+           <p className="text-neutral-dark mb-6">
             {pendingActionForAuth === 'save' && "Você precisa estar logado para salvar sua build. Faça login ou crie uma conta."}
             {pendingActionForAuth === 'export' && "Você precisa estar logado para exportar sua build. Faça login ou crie uma conta."}
             {!pendingActionForAuth && "Você pode iniciar a montagem do seu PC agora. No entanto, para salvar ou exportar sua build, será necessário fazer login."}
@@ -369,9 +279,42 @@ const BuildPage: React.FC = () => {
             )}
           </div>
         </Modal>
-      ) : renderContent()}
+      ) : (
+        <>
+          {!currentBuild && !isLoading && !error && (
+            <ChatbotAnamnesis onAnamnesisComplete={handleAnamnesisComplete} initialAnamnesisData={preferencias || { perfilPC: {} as PerfilPCDetalhado, ambiente: {} as Ambiente }} />
+          )}
+
+          {isLoading && (
+            <div className="text-center py-10">
+              <LoadingSpinner size="lg" text={'IA está pensando na sua build...'} />
+            </div>
+          )}
+
+          {error && !isLoading && (
+            <div className="my-6 p-6 bg-red-800/90 text-red-100 rounded-lg text-center shadow-xl">
+              <h3 className="text-2xl font-semibold mb-3">Oops! Algo deu errado.</h3>
+              <p className="mb-4">{error}</p>
+              <Button onClick={handleTryAgain} variant="secondary" size="lg">
+                Tentar Novamente com a IA
+              </Button>
+            </div>
+          )}
+          
+          {!isLoading && !error && currentBuild && (
+            <BuildSummary
+                build={currentBuild}
+                isLoading={isLoading} 
+                onSaveBuild={triggerSaveBuild}
+                onExportBuild={triggerExportBuild}
+                aiRecommendationNotes={aiNotes}
+              />
+          )}
+        </>
+      )}
 
       <Modal isOpen={isExportModalOpen} onClose={() => setIsExportModalOpen(false)} title="Exportar Build" size="lg">
+        {/* ... (conteúdo do modal de exportação como antes) ... */}
         <textarea
           readOnly
           value={exportedText}

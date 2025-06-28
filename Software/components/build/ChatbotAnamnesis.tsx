@@ -1,9 +1,6 @@
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-<<<<<<< HEAD
-import { AnamnesisData, ChatMessage, CityWeatherData } from '../../types';
-=======
 import { PreferenciaUsuarioInput, ChatMessage, CityWeatherData, Ambiente, PerfilPCDetalhado } from '../../types'; // Tipos atualizados
->>>>>>> gustavo
 import { getChatbotResponse } from '../../services/geminiService';
 import { getUserLocation, GeoLocation } from '../../services/geoService';
 import { getCityWeather } from '../../services/weatherService'; 
@@ -15,13 +12,8 @@ interface ChatbotAnamnesisProps {
   initialAnamnesisData?: PreferenciaUsuarioInput; // Tipo atualizado
 }
 
-<<<<<<< HEAD
 const LOCATION_PERMISSION_QUESTION = "você permite que detectemos sua localização automaticamente?";
 const INITIAL_AI_MESSAGE = "Que tipo de máquina você deseja montar? (Computador Pessoal, Servidor, Estação de Trabalho, Máquina para Mineração, PC para Streaming, Outro)";
-=======
-const LOCATION_PERMISSION_QUESTION = "você permite que detectemos sua localização";
-const INITIAL_AI_MESSAGE = "Que tipo de máquina você deseja montar? (ex: Computador Pessoal para Jogos, Servidor, Estação de Trabalho)";
->>>>>>> gustavo
 
 
 const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onAnamnesisComplete, initialAnamnesisData }) => {
@@ -33,13 +25,9 @@ const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onAnamnesisComplete
     initialAnamnesisData || { perfilPC: {} as PerfilPCDetalhado, ambiente: {} as Ambiente }
   );
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const [awaitingLocationPermission, setAwaitingLocationPermission] = useState<boolean>(false);
   const [locationProcessed, setLocationProcessed] = useState<boolean>(!!initialAnamnesisData?.ambiente?.cidade);
-
-  const [awaitingLocationPermission, setAwaitingLocationPermission] = useState<boolean>(false);
-  const [locationProcessed, setLocationProcessed] = useState<boolean>(!!initialAnamnesisData?.city);
 
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -52,54 +40,30 @@ const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onAnamnesisComplete
   }, []);
 
   useEffect(() => {
-<<<<<<< HEAD
-    if (messages.length === 0 && (!initialAnamnesisData || Object.keys(initialAnamnesisData).length === 0)) {
-=======
     if (messages.length === 0 && (!initialAnamnesisData || Object.keys(initialAnamnesisData.perfilPC).length === 0 && Object.keys(initialAnamnesisData.ambiente).length === 0 )) {
->>>>>>> gustavo
        addMessage('ai', "Olá! Sou o CodeTuga, seu assistente especializado em montagem de PCs. Vamos começar!");
        setTimeout(() => addMessage('ai', INITIAL_AI_MESSAGE), 500);
     }
   }, [addMessage, initialAnamnesisData, messages.length]); 
 
 
-<<<<<<< HEAD
-  const processAiResponse = useCallback((aiResponse: string, updatedAnamnesisFromAI: AnamnesisData) => {
-    addMessage('ai', aiResponse);
-    setAnamnesisData(updatedAnamnesisFromAI);
-
-    if (aiResponse.toLowerCase().includes(LOCATION_PERMISSION_QUESTION.toLowerCase()) && !locationProcessed && !updatedAnamnesisFromAI.city) {
-      setAwaitingLocationPermission(true);
-    } else if (aiResponse.toLowerCase().includes("posso prosseguir para gerar uma recomendação") || aiResponse.toLowerCase().includes("podemos prosseguir para gerar uma recomendação")) {
-=======
   const processAiResponse = useCallback((aiResponse: string, updatedPreferenciasFromAI: PreferenciaUsuarioInput) => {
     addMessage('ai', aiResponse);
     setPreferencias(updatedPreferenciasFromAI);
-    
-    const lowerAiResponse = aiResponse.toLowerCase();
 
-    if (lowerAiResponse.includes(LOCATION_PERMISSION_QUESTION) && !locationProcessed && !updatedPreferenciasFromAI.ambiente.cidade) {
+    if (aiResponse.toLowerCase().includes(LOCATION_PERMISSION_QUESTION.toLowerCase()) && !locationProcessed && !updatedPreferenciasFromAI.ambiente.cidade) {
       setAwaitingLocationPermission(true);
-    } else if (lowerAiResponse.includes("gerar uma recomendação")) {
->>>>>>> gustavo
+    } else if (aiResponse.toLowerCase().includes("posso prosseguir para gerar uma recomendação") || aiResponse.toLowerCase().includes("podemos prosseguir para gerar uma recomendação")) {
       addMessage('system', 'Coleta de requisitos concluída! Clique em "Gerar Recomendação" para continuar.');
     }
   }, [addMessage, locationProcessed]);
 
 
-<<<<<<< HEAD
-  const callGeminiChat = async (input: string, currentData: AnamnesisData) => {
-    setIsLoading(true);
-    try {
-      const { aiResponse, updatedAnamnesis } = await getChatbotResponse(messages, input, currentData);
-      processAiResponse(aiResponse, updatedAnamnesis);
-=======
   const callGeminiChat = async (input: string, currentData: PreferenciaUsuarioInput) => {
     setIsLoading(true);
     try {
       const { aiResponse, updatedPreferencias } = await getChatbotResponse(messages, input, currentData);
       processAiResponse(aiResponse, updatedPreferencias);
->>>>>>> gustavo
     } catch (error) {
       console.error("Error in chat:", error);
       addMessage('system', 'Desculpe, ocorreu um erro. Tente novamente.');
@@ -115,97 +79,8 @@ const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onAnamnesisComplete
     const userMsgText = userInput;
     addMessage('user', userMsgText);
     setUserInput('');
-<<<<<<< HEAD
-    await callGeminiChat(userMsgText, anamnesisData);
-  };
-
-  const handleLocationPermission = async (allow: boolean) => {
-    setAwaitingLocationPermission(false);
-    setLocationProcessed(true); 
-    setIsLoading(true);
-    let systemMessageForGemini = "";
-    let currentAnamnesis = { ...anamnesisData };
-
-    if (allow) {
-      addMessage('system', 'Você permitiu a detecção. Tentando obter sua localização...');
-      try {
-        const loc: GeoLocation | null = await getUserLocation();
-        if (loc && loc.city && loc.latitude && loc.longitude) {
-          currentAnamnesis = { 
-            ...currentAnamnesis, 
-            city: loc.city, 
-            countryCode: loc.country_code3 // GeoJS uses country_code3 for 3-letter ISO
-          };
-          // Set city immediately for display, weather data will be added after fetch
-          setAnamnesisData(prev => ({...prev, city: loc.city, countryCode: loc.country_code3}));
-
-
-          let locationMsg = `Localização detectada: ${loc.city}${loc.country_code3 ? ', '+loc.country_code3 : ''}.`;
-          addMessage('system', locationMsg);
-
-          // Buscar dados do clima usando latitude e longitude
-          const weather = await getCityWeather(loc.latitude, loc.longitude);
-          if (weather) {
-            currentAnamnesis = { 
-              ...currentAnamnesis, 
-              cityAvgTemp: weather.avgTemp, 
-              cityMaxTemp: weather.maxTemp,
-              cityMinTemp: weather.minTemp, // Add minTemp if available and needed
-              cityWeatherDescription: weather.description
-            };
-            setAnamnesisData(currentAnamnesis); // Update state with all weather data
-            const weatherMsg = `Clima em ${loc.city}: ${weather.description}, Temp. Média: ${weather.avgTemp}°C, Máx: ${weather.maxTemp}°C, Mín: ${weather.minTemp}°C.`;
-            addMessage('system', weatherMsg);
-            systemMessageForGemini = `Informação do sistema: ${locationMsg} ${weatherMsg} Prossiga com as perguntas sobre o ambiente específico do PC.`;
-          } else {
-            addMessage('system', 'Não foi possível obter dados climáticos para esta localização.');
-             systemMessageForGemini = `Informação do sistema: ${locationMsg} Não foi possível obter dados climáticos. Prossiga com as perguntas sobre o ambiente específico do PC.`;
-          }
-          await callGeminiChat(systemMessageForGemini, currentAnamnesis);
-
-        } else {
-          addMessage('system', 'Não foi possível detectar sua localização automaticamente ou dados de coordenadas/cidade não foram retornados.');
-          systemMessageForGemini = "Informação do sistema: Detecção de localização automática falhou. Prossiga para perguntas manuais de ambiente geral.";
-          await callGeminiChat(systemMessageForGemini, currentAnamnesis);
-        }
-      } catch (error) {
-        console.error("Error getting location or weather:", error);
-        addMessage('system', 'Erro ao tentar detectar localização ou clima.');
-        systemMessageForGemini = "Informação do sistema: Erro na detecção de localização/clima. Prossiga para perguntas manuais de ambiente geral.";
-        await callGeminiChat(systemMessageForGemini, currentAnamnesis);
-      }
-    } else {
-      addMessage('system', 'Você não permitiu a detecção automática. Vamos prosseguir com perguntas manuais sobre o ambiente.');
-      systemMessageForGemini = "Informação do sistema: Usuário não permitiu detecção automática. Prossiga para perguntas manuais de ambiente geral.";
-      await callGeminiChat(systemMessageForGemini, currentAnamnesis);
-    }
-    setIsLoading(false);
-  };
-  
-  const isAnamnesisConsideredCompleteByAI = messages.some(msg => msg.sender === 'ai' && (msg.text.toLowerCase().includes("posso prosseguir para gerar uma recomendação") || msg.text.toLowerCase().includes("podemos prosseguir para gerar uma recomendação")));
-  
-  const preliminaryCheck = !!(anamnesisData.machineType && (anamnesisData.budget || anamnesisData.budgetRange));
-  const canGenerateRecommendation = isAnamnesisConsideredCompleteByAI && preliminaryCheck;
-
-  const getDisplayKey = (key: string): string => {
-    const map: Record<string, string> = {
-=======
     await callGeminiChat(userMsgText, preferencias);
   };
-  
-  const isAnamnesisConsideredCompleteByAI = messages.some(
-    msg => msg.sender === 'ai' && msg.text.toLowerCase().includes("gerar uma recomendação")
-  );
-  const preliminaryCheck = !!(preferencias.perfilPC?.machineType && (preferencias.orcamento || preferencias.orcamentoRange));
-  const canGenerateRecommendation = isAnamnesisConsideredCompleteByAI && preliminaryCheck;
-
-  useEffect(() => {
-    // Focus input when AI is done loading and chat is still active
-    if (!isLoading && !awaitingLocationPermission && !canGenerateRecommendation) {
-        inputRef.current?.focus();
-    }
-  }, [isLoading, awaitingLocationPermission, canGenerateRecommendation]);
-
 
   const handleLocationPermission = async (allow: boolean) => {
     setAwaitingLocationPermission(false);
@@ -264,6 +139,11 @@ const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onAnamnesisComplete
     setIsLoading(false);
   };
   
+  const isAnamnesisConsideredCompleteByAI = messages.some(msg => msg.sender === 'ai' && (msg.text.toLowerCase().includes("posso prosseguir para gerar uma recomendação") || msg.text.toLowerCase().includes("podemos prosseguir para gerar uma recomendação")));
+  
+  const preliminaryCheck = !!(preferencias.perfilPC?.machineType && (preferencias.orcamento || preferencias.orcamentoRange));
+  const canGenerateRecommendation = isAnamnesisConsideredCompleteByAI && preliminaryCheck;
+
   // Helper para exibir chaves de forma amigável
   const getDisplayKey = (category: string, subKey: string): string => {
     const commonMap: Record<string, string> = {
@@ -276,38 +156,11 @@ const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onAnamnesisComplete
     if (category === 'root' && commonMap[subKey]) return commonMap[subKey];
 
     const perfilPCMap: Record<string, string> = {
->>>>>>> gustavo
         machineType: 'Tipo de Máquina', purpose: 'Propósito Principal', gamingType: 'Tipo de Jogos',
         monitorSpecs: 'Monitor (Jogos)', peripheralsNeeded: 'Periféricos (Jogos)',
         workField: 'Área de Trabalho', softwareUsed: 'Softwares Utilizados',
         multipleMonitors: 'Múltiplos Monitores', monitorCount: 'Qtd. Monitores',
         creativeEditingType: 'Tipo de Edição Criativa', creativeWorkResolution: 'Resolução (Edição)',
-<<<<<<< HEAD
-        projectSize: 'Tamanho Projetos (Edição)', buildExperience: 'Experiência de Montagem',
-        brandPreference: 'Preferência de Marcas', aestheticsImportance: 'Importância da Estética',
-        serverType: 'Tipo de Servidor', serverUsers: 'Usuários (Servidor)',
-        serverRedundancy: 'Redundância (Servidor)', serverUptime: 'Uptime (Servidor)',
-        serverScalability: 'Escalabilidade (Servidor)', miningCrypto: 'Criptomoedas',
-        miningHashrate: 'Hashrate (Mineração)', miningGpuCount: 'GPUs (Mineração)',
-        miningEnergyCost: 'Custo Energia (Mineração)', budget: 'Orçamento (Valor)', budgetRange: 'Faixa de Orçamento',
-        city: 'Cidade', countryCode: 'País', 
-        cityAvgTemp: 'Temp. Média Cidade', cityMaxTemp: 'Temp. Máx. Cidade', cityMinTemp: 'Temp. Mín. Cidade', 
-        cityWeatherDescription: 'Clima Cidade',
-        pcVentilation: 'Ventilação PC (Local)', pcDustLevel: 'Poeira PC (Local)',
-        pcRoomType: 'Cômodo PC (Local)', envTempControl: 'Controle Temp. (Geral)',
-        envDust: 'Poeira (Geral)', caseSize: 'Tamanho Gabinete',
-        noiseLevel: 'Nível de Ruído', specificPorts: 'Portas Específicas',
-        preferences: 'Preferências Adicionais', isCustomType: 'Tipo Customizado?',
-        customDescription: 'Descrição (Custom)', criticalComponents: 'Componentes Críticos (Custom)',
-        usagePatterns: 'Padrões de Uso (Custom)', physicalConstraints: 'Restrições Físicas (Custom)',
-        specialRequirements: 'Requisitos Especiais (Custom)', referenceSystems: 'Sistemas de Referência (Custom)',
-        envTemperature: 'Temperatura (Legado)', envHumidity: 'Umidade (Legado)', workType: 'Tipo de Trabalho (Legado)'
-    };
-    if (map[key]) return map[key];
-    let display = key.replace(/([A-Z])/g, ' $1');
-    return display.charAt(0).toUpperCase() + display.slice(1);
-  };
-=======
         projectSize: 'Tamanho Projetos (Edição)', serverType: 'Tipo de Servidor', 
         serverUsers: 'Usuários (Servidor)', serverRedundancy: 'Redundância (Servidor)', 
         serverUptime: 'Uptime (Servidor)', serverScalability: 'Escalabilidade (Servidor)', 
@@ -348,7 +201,6 @@ const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onAnamnesisComplete
         return <li key={prefix + key}><span className="font-medium">{getDisplayKey(category, key)}:</span> {displayValue}</li>;
       });
   };
->>>>>>> gustavo
 
 
   return (
@@ -398,10 +250,6 @@ const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onAnamnesisComplete
       ) : (
         <form onSubmit={handleSendMessage} className="flex gap-3">
           <input
-<<<<<<< HEAD
-=======
-            ref={inputRef}
->>>>>>> gustavo
             type="text"
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
@@ -425,24 +273,6 @@ const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onAnamnesisComplete
         </div>
       )}
       <div className="mt-4 p-3 bg-primary/50 border border-neutral-dark/50 rounded-md text-xs max-h-48 overflow-y-auto">
-<<<<<<< HEAD
-        <h4 className="font-semibold text-accent mb-1">Dados Coletados:</h4>
-        <ul className="list-disc list-inside">
-            {Object.entries(anamnesisData)
-              .sort(([keyA], [keyB]) => getDisplayKey(keyA).localeCompare(getDisplayKey(keyB))) 
-              .map(([key, value]) => {
-                if (value === undefined || value === null || value === '' || (typeof value === 'boolean' && !value)) return null;
-                if (typeof value === 'object' && Object.keys(value).length === 0) return null;
-
-                let displayValue = String(value);
-                if (typeof value === 'boolean') displayValue = value ? 'Sim' : 'Não';
-                if (key === 'cityAvgTemp' || key === 'cityMaxTemp' || key === 'cityMinTemp') displayValue += '°C';
-                 if (key === 'budget' && typeof value === 'number') displayValue = `R$ ${value.toFixed(2)}`;
-
-
-                return <li key={key}><span className="font-medium">{getDisplayKey(key)}:</span> {displayValue}</li> 
-            })}
-=======
         <h4 className="font-semibold text-accent mb-1">Dados Coletados (PreferenciasUsuarioInput):</h4>
         <ul className="list-disc list-inside">
             {renderCollectedData(preferencias, 'root')}
@@ -462,15 +292,10 @@ const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onAnamnesisComplete
                 </ul>
               </>
             )}
->>>>>>> gustavo
         </ul>
       </div>
     </div>
   );
 };
 
-<<<<<<< HEAD
 export default ChatbotAnamnesis;
-=======
-export default ChatbotAnamnesis;
->>>>>>> gustavo
