@@ -285,7 +285,7 @@ const BuildPage: React.FC = () => {
             }
 
             const newBuild: Build = {
-                id: `build-${Date.now()}`,
+                id: crypto.randomUUID(),
                 nome: `Build IA - ${data.perfilPC.purpose || 'Custom'}`,
                 componentes: recommendedComponents,
                 orcamento: recommendation.estimatedTotalPrice || recommendedComponents.reduce((acc, c) => acc + c.Preco, 0),
