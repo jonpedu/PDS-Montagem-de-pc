@@ -3,6 +3,7 @@
 import React from 'react';
 import { Build, Componente } from '../../types'; // Tipos atualizados
 import Button from '../core/Button';
+import Icon from '../core/Icon'; // Import the new Icon component
 
 interface BuildSummaryProps {
   build: Build | null;
@@ -15,7 +16,7 @@ interface BuildSummaryProps {
 const ComponentItem: React.FC<{ component: Componente }> = ({ component }) => (
     <li className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-4 px-3 bg-primary rounded-lg hover:bg-primary/80 transition-colors duration-150">
       <div className="flex items-center mb-2 sm:mb-0 flex-1 min-w-0 mr-4">
-        <img src={component.imageUrl || `https://pjdgcszputgevqggtwhp.supabase.co/storage/v1/object/public/component_images/placeholder.webp`} alt={component.Produto} className="w-12 h-12 object-cover rounded-md mr-4 flex-shrink-0" />
+        <Icon category={component.Categoria} className="w-12 h-12 text-accent mr-4 flex-shrink-0" />
         <div>
           <h4 className="font-semibold text-accent text-md" title={component.Produto}>{component.Produto}</h4>
           <p className="text-xs text-neutral-dark">{component.Categoria || 'Componente'} - {component.brand || 'Marca não especificada'}</p>
