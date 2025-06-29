@@ -19,10 +19,18 @@ const parseJsonFromGeminiResponse = <T,>(responseText: string): T | null => {
   if (match && match[1]) {
     jsonStr = match[1].trim();
   }
+
+  // Handle cases where the model might add explanatory text before or after the JSON block.
+  const firstBrace = jsonStr.indexOf('{');
+  const lastBrace = jsonStr.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+  }
+
   try {
     return JSON.parse(jsonStr) as T;
   } catch (e) {
-    console.error("Falha ao analisar resposta JSON do Gemini:", e, "\nResposta Bruta:", responseText);
+    console.error("Falha ao analisar resposta JSON do Gemini:", e, "\nResposta Bruta:", responseText, "\nString Analisada:", jsonStr);
     return null;
   }
 };
@@ -337,7 +345,7 @@ Instruções CRÍTICAS e OBRIGATÓRIAS:
 
 4.  **FOCO NO ORÇAMENTO:** Tente montar a melhor build possível DENTRO do orçamento fornecido. Se não for possível, monte a build mais próxima e explique a situação no campo 'budgetNotes'.
 
-5.  **SAÍDA EM JSON (OBRIGATÓRIO):** Sua resposta DEVE ser um único bloco de código JSON, sem nenhum texto ou explicação antes ou depois. A estrutura do JSON deve ser:
+5.  **SAÍDA EM JSON (OBRIGATÓRIO):** Sua resposta DEVE ser um único bloco de código JSON válido, sem nenhum texto, markdown, ou explicações antes ou depois. Não inclua NENHUM comentário ou pensamento dentro do próprio bloco de código JSON. O JSON deve ser estritamente aderente ao formato especificado abaixo:
 {
   "recommendedComponentIds": ["id_do_processador", "id_da_placa_mae", ...],
   "justification": "Explicação concisa das suas escolhas, focando em como elas atendem às necessidades e orçamento do usuário e como a compatibilidade foi garantida.",
