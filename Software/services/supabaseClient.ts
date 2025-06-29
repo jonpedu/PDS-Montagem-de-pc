@@ -2,8 +2,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { Build, Componente, PreferenciaUsuarioInput } from '../types';
 
-const SUPABASE_URL = 'https://gvyuakhhfqjngyyssdss.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2eXVha2hoZnFqbmd5eXNzZHNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEwMDc1OTgsImV4cCI6MjA2NjU4MzU5OH0.LgpMYW34GqkRF64GjDsmc_q8jK3WoZMELwRktc197k4';
+const SUPABASE_URL = 'https://ryqsocrgtwkmvfbqsrph.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5cXNvY3JndHdrbXZmYnFzcnBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEyMjA3ODMsImV4cCI6MjA2Njc5Njc4M30.H-0GEt-VgUKkLW2ARn3LYgM6XAMKS0H0k7Leg6kiADM';
 
 
 // Define a type for your database schema.

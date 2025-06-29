@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentação - CodeTugaBuilds</title>
+    <style>
+        :root {
+            --dark-blue: #0D1B2A;
+            --light-dark-blue: #1B263B;
+            --cyan-accent: #41EAD4;
+            --light-gray: #E0E1DD;
+            --muted-blue: #778DA9;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: var(--dark-blue);
+            color: var(--light-gray);
+            display: flex;
+        }
+
+        .sidebar {
+            width: 280px;
+            background-color: var(--light-dark-blue);
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 2px solid var(--muted-blue);
+        }
+        
+        .sidebar h2 {
+            color: var(--cyan-accent);
+            font-size: 1.5em;
+            margin-top: 0;
+            border-bottom: 2px solid var(--cyan-accent);
+            padding-bottom: 10px;
+        }
+
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .sidebar li a {
+            color: var(--light-gray);
+            text-decoration: none;
+            display: block;
+            padding: 10px 15px;
+            border-radius: 5px;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .sidebar li a:hover,
+        .sidebar li a.active {
+            background-color: var(--cyan-accent);
+            color: var(--dark-blue);
+            font-weight: 500;
+        }
+
+        .main-content {
+            margin-left: 280px; /* Same as sidebar width */
+            padding: 20px 40px;
+            width: calc(100% - 280px);
+        }
+
+        header {
+            background: var(--light-dark-blue);
+            color: var(--cyan-accent);
+            padding: 20px 0;
+            border-bottom: var(--cyan-accent) 3px solid;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        header h1 {
+            margin: 0;
+            font-size: 2.5em;
+        }
+
+        section {
+             padding-top: 60px;
+             margin-top: -40px;
+        }
+
+        h2 {
+            color: var(--cyan-accent);
+            border-bottom: 2px solid var(--muted-blue);
+            padding-bottom: 5px;
+            margin-top: 40px;
+            font-size: 2em;
+        }
+        h3 {
+            color: var(--cyan-accent);
+            opacity: 0.9;
+            margin-top: 30px;
+            font-size: 1.5em;
+        }
+        h4 {
+            color: var(--cyan-accent);
+            opacity: 0.8;
+            margin-top: 25px;
+            font-size: 1.2em;
+            border-left: 3px solid var(--cyan-accent);
+            padding-left: 10px;
+        }
+        code {
+            background: var(--light-dark-blue);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            color: var(--light-gray);
+        }
+        pre {
+            background: #000;
+            border: 1px solid var(--light-dark-blue);
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            color: #f8f8f2;
+        }
+        pre code {
+            padding: 0;
+            background: none;
+            border: none;
+        }
+        .main-content ul {
+            list-style: none;
+            padding: 0;
+        }
+        .main-content ul li {
+            background: var(--light-dark-blue);
+            margin-bottom: 10px;
+            padding: 15px;
+            border-left: 5px solid var(--cyan-accent);
+            border-radius: 4px;
+        }
+        .file-path {
+            font-weight: bold;
+            color: var(--cyan-accent);
+        }
+        .description {
+            margin-left: 10px;
+        }
+        .tag {
+            display: inline-block;
+            background-color: var(--cyan-accent);
+            color: var(--dark-blue);
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        a {
+            color: var(--cyan-accent);
+            text-decoration: none;
+        }
+        .sidebar a:hover {
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 900px) {
+            body {
+                flex-direction: column;
+            }
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 2px solid var(--muted-blue);
+            }
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+                padding: 20px;
+            }
+            section {
+                padding-top: 20px;
+                margin-top: 0;
+            }
+        }
+
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="sidebar">
+        <h2>Navegação</h2>
+        <ul>
+            <li><a href="#overview">1. Visão Geral</a></li>
+            <li><a href="#tech-stack">2. Tecnologias</a></li>
+            <li><a href="#project-structure">3. Estrutura de Arquivos</a></li>
+            <li><a href="#architecture">4. Arquitetura e Fluxos</a></li>
+            <li><a href="#key-functions">5. Análise de Funções-Chave</a></li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <header>
+            <h1>Documentação do Projeto: CodeTugaBuilds</h1>
+            <p>Um Montador de PCs Inteligente com IA</p>
+        </header>
+
+        <section id="overview">
+            <h2>1. Visão Geral</h2>
+            <p>
+                CodeTugaBuilds é uma aplicação web moderna que auxilia usuários na montagem de computadores personalizados. Utilizando a API Gemini do Google, a aplicação oferece uma experiência de chatbot interativa para coletar os requisitos do usuário e, em seguida, gera uma recomendação de build completa e otimizada. A aplicação também se integra com Supabase para autenticação de usuários e persistência de dados (builds salvas).
+            </p>
+        </section>
+
+        <section id="tech-stack">
+            <h2>2. Tecnologias Utilizadas</h2>
+            <div>
+                <span class="tag">React 19</span>
+                <span class="tag">TypeScript</span>
+                <span class="tag">TailwindCSS</span>
+                <span class="tag">Google Gemini API (@google/genai)</span>
+                <span class="tag">Supabase (Auth & Database)</span>
+                <span class="tag">React Router DOM</span>
+                <span class="tag">jsPDF & jspdf-autotable</span>
+                <span class="tag">ESM via esm.sh</span>
+            </div>
+        </section>
+
+        <section id="project-structure">
+            <h2>3. Estrutura de Arquivos</h2>
+            <p>A estrutura do projeto é organizada por funcionalidade para promover modularidade e escalabilidade.</p>
+            <ul>
+                <li>
+                    <span class="file-path">/index.html</span>
+                    <div class="description">Ponto de entrada da aplicação. Carrega o TailwindCSS, fontes, e configura o <code>importmap</code> para gerenciar as dependências de módulos ES6.</div>
+                </li>
+                <li>
+                    <span class="file-path">/index.tsx</span>
+                    <div class="description">Monta o componente principal <code>App</code> na DOM.</div>
+                </li>
+                 <li>
+                    <span class="file-path">/App.tsx</span>
+                    <div class="description">Componente raiz que configura o roteamento da aplicação com <code>react-router-dom</code> e envolve todas as páginas com os provedores de contexto (<code>AuthProvider</code>) e o layout principal (<code>Layout</code>).</div>
+                </li>
+                <li>
+                    <span class="file-path">/types.ts</span>
+                    <div class="description">Arquivo central que define todas as interfaces e tipos TypeScript utilizados no projeto, garantindo a consistência e segurança dos dados. Essencial para entender as estruturas de dados como <code>Build</code>, <code>Componente</code>, e <code>PreferenciaUsuarioInput</code>.</div>
+                </li>
+                <li>
+                    <span class="file-path">/data/componentes.csv</span>
+                    <div class="description">Fonte de dados principal contendo a lista de todos os componentes de PC disponíveis, com ID, Categoria, Produto, Preço e Link de compra.</div>
+                </li>
+                <li>
+                    <span class="file-path">/components/</span>
+                    <div class="description">Contém todos os componentes React reutilizáveis.
+                        <ul>
+                            <li><span class="file-path">core/</span>: Componentes de UI básicos e genéricos (<code>Button</code>, <code>Modal</code>, <code>LoadingSpinner</code>, <code>Icon</code>).</li>
+                            <li><span class="file-path">layout/</span>: Componentes estruturais (<code>Layout</code>, <code>Navbar</code>, <code>Footer</code>).</li>
+                            <li><span class="file-path">build/</span>: Componentes específicos da funcionalidade de montagem (<code>ChatbotAnamnesis</code>, <code>BuildSummary</code>).</li>
+                        </ul>
+                    </div>
+                </li>
+                 <li>
+                    <span class="file-path">/contexts/</span>
+                    <div class="description">Provedores de contexto para gerenciamento de estado global.
+                        <ul>
+                            <li><span class="file-path">AuthContext.tsx</span>: Gerencia toda a lógica de autenticação (login, logout, registro, estado do usuário) utilizando o Supabase Auth.</div>
+                        </ul>
+                    </div>
+                </li>
+                 <li>
+                    <span class="file-path">/pages/</span>
+                    <div class="description">Componentes que representam as páginas da aplicação.
+                        <ul>
+                           <li><span class="file-path">HomePage.tsx</span>: Página inicial de apresentação.</li>
+                           <li><span class="file-path">BuildPage.tsx</span>: Página principal que orquestra a montagem de PC, desde o chatbot até a exibição do resumo.</li>
+                           <li><span class="file-path">AuthPage.tsx</span>: Formulário de Login e Registro.</li>
+                           <li><span class="file-path">DashboardPage.tsx</span>: Painel do usuário para gerenciar builds salvas (rota protegida).</li>
+                           <li><span class="file-path">ProfilePage.tsx</span>: Página para o usuário visualizar e editar seu perfil (rota protegida).</li>
+                        </ul>
+                    </div>
+                </li>
+                <li>
+                    <span class="file-path">/services/</span>
+                    <div class="description">Módulos responsáveis pela comunicação com APIs externas e lógica de negócio.
+                        <ul>
+                             <li><span class="file-path">geminiService.ts</span>: Contém a lógica de interação com a API Gemini, incluindo a construção de prompts, chamadas para o chatbot e para a recomendação de builds.</li>
+                             <li><span class="file-path">componentService.ts</span>: Responsável por buscar e parsear o arquivo <code>componentes.csv</code>, com um mecanismo de cache para otimização.</li>
+                             <li><span class="file-path">supabaseClient.ts</span>: Inicializa o cliente Supabase e define os tipos do banco de dados para type-safety.</li>
+                             <li><span class="file-path">geoService.ts</span> & <span class="file-path">weatherService.ts</span>: Serviços para obter dados de geolocalização e clima, respectivamente, para enriquecer a recomendação da IA.</li>
+                        </ul>
+                    </div>
+                </li>
+            </ul>
+        </section>
+
+        <section id="architecture">
+            <h2>4. Arquitetura e Fluxos de Dados</h2>
+            
+            <h3>Fluxo de Montagem com IA</h3>
+            <ol>
+                <li>O usuário navega para <code>/build</code>. A página <code>BuildPage.tsx</code> é renderizada.</li>
+                <li><code>BuildPage</code> renderiza o componente <code>ChatbotAnamnesis.tsx</code>.</li>
+                <li>O chatbot inicia a conversa para coletar os requisitos do usuário. Cada interação do usuário aciona a função <code>getChatbotResponse</code> em <code>geminiService.ts</code>.</li>
+                <li>A IA segue um prompt de sistema rigoroso para fazer perguntas sequenciais e extrair informações, atualizando o estado <code>PreferenciaUsuarioInput</code>.</li>
+                <li>Em um momento específico, o chatbot solicita permissão para geolocalização. Se concedido, <code>geoService</code> e <code>weatherService</code> são chamados para obter dados climáticos.</li>
+                <li>Quando a IA considera a coleta de dados completa, ela emite uma mensagem de finalização. O botão "Gerar Recomendação" é habilitado em <code>ChatbotAnamnesis</code>.</li>
+                <li>Ao clicar no botão, <code>BuildPage</code> chama <code>getBuildRecommendation</code> em <code>geminiService.ts</code>, enviando os requisitos do usuário e a lista de componentes disponíveis (fornecida por <code>componentService.ts</code>).</li>
+                <li>O <code>geminiService</code> envia um prompt detalhado para a API Gemini, que retorna uma recomendação em formato JSON (<code>AIRecommendation</code>).</li>
+                <li><code>BuildPage</code> processa essa recomendação, mapeia os IDs dos componentes para os detalhes completos e cria um objeto <code>Build</code>.</li>
+                <li>Finalmente, <code>BuildPage</code> renderiza o componente <code>BuildSummary.tsx</code> com os dados da build final para o usuário.</li>
+            </ol>
+            
+            <h3>Fluxo de Autenticação</h3>
+             <ol>
+                <li>O contexto <code>AuthContext.tsx</code> utiliza o <code>onAuthStateChange</code> do Supabase para ouvir mudanças no estado de autenticação em tempo real.</li>
+                <li>As rotas <code>/dashboard</code> e <code>/profile</code> são protegidas pelo componente <code>ProtectedRoute</code>, que verifica se existe um <code>currentUser</code> no contexto.</li>
+                <li>A página <code>AuthPage.tsx</code> fornece os formulários para login e registro, que chamam as funções <code>login</code> e <code>register</code> do <code>AuthContext</code>.</li>
+                <li>Ao salvar uma build, <code>BuildPage.tsx</code> verifica a autenticação. Se o usuário for anônimo, um modal (<code>Modal.tsx</code>) é exibido, incentivando o login. Se o usuário prosseguir para o login, o estado da build é salvo em <code>sessionStorage</code> para ser recuperado após a autenticação bem-sucedida.</li>
+                <li>Após o login/registro, o <code>AuthContext</code> redireciona o usuário de volta para a página original ou para o dashboard, garantindo uma experiência de usuário fluida.</li>
+            </ol>
+        </section>
+        
+        <section id="key-functions">
+            <h2>5. Análise de Funções-Chave</h2>
+
+            <h3>Serviço de IA (<code>services/geminiService.ts</code>)</h3>
+            <p>Este módulo é o cérebro da aplicação, responsável por toda a comunicação com a API do Google Gemini.</p>
+
+            <h4><code>getChatbotResponse(...)</code></h4>
+            <ul>
+                <li><strong>Propósito:</strong> Gerenciar a conversa do chatbot de anamnese.</li>
+                <li><strong>Parâmetros:</strong> <code>history</code> (histórico do chat), <code>userInput</code> (mensagem do usuário), <code>currentPreferencias</code> (o estado atual dos requisitos coletados).</li>
+                <li><strong>Lógica:</strong>
+                    <ol>
+                        <li>Constrói um histórico de chat formatado para a API Gemini.</li>
+                        <li>Cria um prompt de sistema detalhado que inclui: as regras de conversação, o fluxo de perguntas a ser seguido, e o estado atual dos dados já coletados (<code>currentPreferencias</code>). Isso permite que a IA saiba o que perguntar a seguir.</li>
+                        <li>Chama a API <code>ai.models.generateContent</code> com o histórico e o prompt de sistema.</li>
+                        <li>Paralelamente, tenta extrair informações da resposta do usuário (<code>userInput</code>) com base na última pergunta feita pela IA, atualizando o objeto <code>updatedPreferencias</code>. Este é um passo heurístico para garantir que os dados sejam capturados.</li>
+                        <li>Retorna a resposta textual da IA e o objeto <code>updatedPreferencias</code> atualizado.</li>
+                    </ol>
+                </li>
+            </ul>
+
+            <h4><code>preFilterComponents(...)</code></h4>
+            <ul>
+                <li><strong>Propósito:</strong> Reduzir o número de componentes enviados à IA para otimizar a chamada (custo e tokens) e melhorar a relevância.</li>
+                <li><strong>Lógica:</strong> Se um orçamento é fornecido, a função calcula um preço-alvo para cada categoria de componente (ex: 20% do orçamento para CPU, 35% para GPU). Em seguida, seleciona os 15 componentes de cada categoria cujos preços são mais próximos desse alvo, garantindo uma lista relevante e de tamanho gerenciável.</li>
+            </ul>
+
+            <h4><code>getBuildRecommendation(...)</code></h4>
+            <ul>
+                <li><strong>Propósito:</strong> Obter a recomendação final de build da IA.</li>
+                <li><strong>Parâmetros:</strong> <code>requisitos</code> (objeto <code>PreferenciaUsuarioInput</code> completo), <code>availableComponents</code> (lista de todos os componentes disponíveis).</li>
+                <li><strong>Lógica:</strong>
+                    <ol>
+                        <li>Chama <code>preFilterComponents</code> para obter uma lista otimizada de componentes.</li>
+                        <li>Constrói um prompt massivo e altamente estruturado para a IA, que inclui os requisitos do usuário, a lista de componentes pré-filtrados e, mais importante, um conjunto de "Instruções CRÍTICAS" que ditam as regras de compatibilidade (soquete de CPU, tipo de RAM, etc.) e a obrigatoriedade de retornar uma resposta em formato JSON.</li>
+                        <li>Chama a API <code>ai.models.generateContent</code> com a configuração <code>responseMimeType: "application/json"</code>.</li>
+                        <li>Utiliza <code>parseJsonFromGeminiResponse</code> para analisar a resposta de texto da IA e convertê-la em um objeto <code>AIRecommendation</code>.</li>
+                    </ol>
+                </li>
+            </ul>
+
+            <h3>Página de Montagem (<code>pages/BuildPage.tsx</code>)</h3>
+            <p>Este componente orquestra a experiência do usuário na página de montagem, gerenciando o estado entre a anamnese e a exibição do resumo.</p>
+
+            <h4><code>handleAnamnesisComplete(...)</code></h4>
+            <ul>
+                <li><strong>Propósito:</strong> Atuar como a ponte entre o chatbot e a geração da build.</li>
+                <li><strong>Lógica:</strong> É chamada pelo componente <code>ChatbotAnamnesis</code> quando a coleta de dados é finalizada. Ela atualiza o estado da página, define o status para "carregando", e chama <code>getBuildRecommendation</code>. Ao receber a resposta, ela mapeia os IDs de componentes para os objetos completos e constrói o objeto <code>Build</code>, que é então passado para o componente <code>BuildSummary</code>.</li>
+            </ul>
+            
+            <h4><code>triggerSaveBuild()</code> / <code>executeActualSaveBuild(...)</code></h4>
+            <ul>
+                <li><strong>Propósito:</strong> Gerenciar o salvamento de uma build, incluindo a verificação de autenticação.</li>
+                <li><strong>Lógica:</strong>
+                    <ol>
+                        <li><code>triggerSaveBuild</code> verifica se o usuário está logado (<code>currentUser</code>).</li>
+                        <li>Se não estiver logado, salva a build atual e as notas da IA no <code>sessionStorage</code>, define um estado de "ação pendente" e abre o modal de login.</li>
+                        <li>Se estiver logado, chama diretamente <code>executeActualSaveBuild</code>.</li>
+                        <li><code>executeActualSaveBuild</code> realiza as chamadas para o Supabase: primeiro, um <code>upsert</code> na tabela <code>builds</code>, depois deleta quaisquer componentes antigos associados a essa build na tabela <code>build_components</code>, e finalmente insere os novos componentes.</li>
+                    </ol>
+                </li>
+            </ul>
+            
+            <h3>Contexto de Autenticação (<code>contexts/AuthContext.tsx</code>)</h3>
+            <p>Gerencia o estado global de autenticação e as interações com o Supabase Auth.</p>
+
+            <h4><code>useEffect()</code> com <code>onAuthStateChange</code></h4>
+            <ul>
+                <li><strong>Propósito:</strong> Manter o estado da aplicação sincronizado com o estado de autenticação do Supabase.</li>
+                <li><strong>Lógica:</strong> Este efeito é executado uma vez na montagem do provider. Ele se inscreve no evento <code>onAuthStateChange</code> do Supabase, que é disparado sempre que um usuário faz login, logout ou a sessão expira. Quando um evento ocorre, ele atualiza o estado interno (<code>session</code> e <code>currentUser</code>), garantindo que toda a aplicação reaja à mudança de status de autenticação.</li>
+            </ul>
+
+        </section>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('.sidebar nav ul li a');
+
+            if (sections.length === 0 || navLinks.length === 0) return;
+
+            const activateLink = () => {
+                let index = sections.length;
+
+                while(--index && window.scrollY + 80 < sections[index].offsetTop) {}
+                
+                navLinks.forEach((link) => link.classList.remove('active'));
+                if(navLinks[index]) {
+                   navLinks[index].classList.add('active');
+                }
+            };
+            
+            activateLink(); // Run on load
+            window.addEventListener('scroll', activateLink);
+        });
+    </script>
+</body>
+</html>
