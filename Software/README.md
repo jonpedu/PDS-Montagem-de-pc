@@ -17,6 +17,7 @@ cd Software
    npm install
    npm install --save-dev @types/react @types/react-dom
    npm install vite --save-dev
+   npm install jspdf
    ```
 
 2. Defina a variável `GEMINI_API_KEY` no arquivo [.env.local](.env.local) com sua chave da API Gemini.
