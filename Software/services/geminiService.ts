@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI, GenerateContentResponse, Part, Content } from "@google/genai";
 import { PreferenciaUsuarioInput, ChatMessage, Componente, AIRecommendation, MachineType, PurposeType, GamingType, WorkField, CreativeEditingType, CreativeWorkResolution, ProjectSize, BuildExperience, AestheticsImportance, ServerType, ServerUptime, ServerScalability, EnvTempControlType, CaseSizeType, NoiseLevelType, Ambiente, PerfilPCDetalhado } from '../types';
 
@@ -78,7 +79,7 @@ FLUXO DE PERGUNTAS INTELIGENTE E CONCISO:
     Se os campos críticos estiverem preenchidos e o campo \`preferences\` ainda não foi alterado, pergunte de forma aberta: "Ótimo. Para finalizar, você tem alguma outra preferência importante que eu deva saber? Isso pode incluir estética (como iluminação RGB), tamanho específico do gabinete (compacto, grande), nível de ruído (silencioso), ou necessidade de Wi-Fi/Bluetooth." Se o usuário disser 'não' ou pular, prossiga para a validação.
 
 6.  **Validação Final e Conclusão**:
-    Quando os campos CRÍTICOS (machineType, purpose/workField, budget) estiverem preenchidos, resuma brevemente:
+    Quando os campos CRÍTICOS (machineType, purpose/workField, orcamento/orcamentoRange) estiverem preenchidos, resuma brevemente:
     "Ok, coletei as informações principais: [Liste 2-3 pontos chave]. Está tudo correto para eu gerar uma recomendação de build?"
 
 REGRAS DE INTERAÇÃO:
@@ -101,7 +102,6 @@ REGRAS DE INTERAÇÃO:
     });
     
     const aiText = result.text;
-    // Criar cópias profundas para evitar mutações diretas
     const updatedPreferencias: PreferenciaUsuarioInput = JSON.parse(JSON.stringify(currentPreferencias));
     if (!updatedPreferencias.perfilPC) updatedPreferencias.perfilPC = {} as PerfilPCDetalhado;
     if (!updatedPreferencias.ambiente) updatedPreferencias.ambiente = {} as Ambiente;
@@ -123,93 +123,90 @@ REGRAS DE INTERAÇÃO:
       return undefined;
     };
 
-    const FEMININE_DUST_LEVEL_MAP: Record<string, 'Baixa' | 'Média' | 'Alta'> = {
-      'baixo': 'Baixa', 'baixa': 'Baixa',
-      'médio': 'Média', 'media': 'Média',
-      'alto': 'Alta', 'alta': 'Alta'
-    };
-
-    // 1. Machine Type
-    if (lastAiQuestionText.includes("que tipo de máquina você deseja montar?") && !updatedPreferencias.perfilPC.machineType) {
-        const typeMap: Record<string, MachineType> = { /* ... manter mapeamentos ... */ };
-        updatedPreferencias.perfilPC.machineType = parseGenericOptions(lowerInput, typeMap) as MachineType;
-        if (lowerInput.length > 2 && !updatedPreferencias.perfilPC.machineType) {
-            const customTypes: Record<string, MachineType> = { /* ... */ };
-            updatedPreferencias.perfilPC.machineType = parseGenericOptions(lowerInput, customTypes) as MachineType || 'Customizado';
-            updatedPreferencias.perfilPC.isCustomType = true;
-            if(!updatedPreferencias.perfilPC.customDescription) updatedPreferencias.perfilPC.customDescription = userInput;
-        }
-    }
-
-    // 2. Fluxos Específicos - Exemplo para Computador Pessoal > Propósito
-    if (updatedPreferencias.perfilPC.machineType === 'Computador Pessoal') {
-        if (lastAiQuestionText.includes("qual será o uso principal?") && !updatedPreferencias.perfilPC.purpose) {
-            const purposeMap: Record<string, PurposeType> = { /* ... manter mapeamentos ... */ };
-            updatedPreferencias.perfilPC.purpose = parseGenericOptions(lowerInput, purposeMap) as PurposeType;
-        }
-        // ... adaptar todos os outros parsers para acessar updatedPreferencias.perfilPC.campo ou updatedPreferencias.ambiente.campo ...
-        // Exemplo para Jogos > gamingType
-        if (updatedPreferencias.perfilPC.purpose === 'Jogos') {
-            if (lastAiQuestionText.includes("que tipo de jogos você pretende jogar?") && !updatedPreferencias.perfilPC.gamingType) {
-                const gameTypeMap: Record<string, GamingType> = { /* ... */ };
-                updatedPreferencias.perfilPC.gamingType = parseGenericOptions(lowerInput, gameTypeMap) as GamingType;
-            }
-            // ... e assim por diante para monitorSpecs, peripheralsNeeded
-        }
-    }
-    
-    // 3. Orçamento
-    if (lastAiQuestionText.includes("faixa de orçamento") && (!updatedPreferencias.orcamento && !updatedPreferencias.orcamentoRange)) {
-        // ... lógica de parsing para updatedPreferencias.orcamento e updatedPreferencias.orcamentoRange ...
-        const budgetRangesMap: Record<string, { range: PreferenciaUsuarioInput['orcamentoRange'], value?: number }> = {
-            'econômico': { range: 'Econômico [R$2-4k]', value: 3000 }, 
-            // ... outros mapeamentos ...
+    if (lastAiQuestionText.includes("que tipo de máquina")) {
+        const typeMap: Record<string, MachineType> = {
+            'servidor': 'Servidor', 'server': 'Servidor',
+            'workstation': 'Estação de Trabalho', 'trabalho pesado': 'Estação de Trabalho',
+            'mineração': 'Máquina para Mineração', 'minerar': 'Máquina para Mineração',
+            'pessoal': 'Computador Pessoal', 'pc': 'Computador Pessoal', 'desktop': 'Computador Pessoal',
+            'streaming': 'PC para Streaming', 'streamar': 'PC para Streaming',
         };
-        // ... (lógica de parsing adaptada)
-         const numMatch = userInput.match(/(\d[\d.,]*\d|\d+)/g);
-        if (numMatch) {
-            const cleanedNumber = parseFloat(numMatch[0].replace(/\./g, '').replace(',', '.'));
-            if (!isNaN(cleanedNumber)) {
-                 updatedPreferencias.orcamento = cleanedNumber;
-                 if(!updatedPreferencias.orcamentoRange) updatedPreferencias.orcamentoRange = 'Personalizar'; 
+        const purposeMap: Record<string, PurposeType> = {
+            'jogo': 'Jogos', 'jogos': 'Jogos', 'game': 'Jogos',
+            'trabalho': 'Trabalho/Produtividade', 'produtividade': 'Trabalho/Produtividade', 'estudo': 'Trabalho/Produtividade', 'escritório': 'Trabalho/Produtividade',
+            'edição': 'Edição Criativa', 'edicao': 'Edição Criativa', 'editar': 'Edição Criativa', 'design': 'Edição Criativa',
+            'geral': 'Uso Geral', 'básico': 'Uso Geral', 'dia a dia': 'Uso Geral', 'navegar': 'Uso Geral',
+            'htpc': 'HTPC', 'sala': 'HTPC', 'filmes': 'HTPC', 'mídia': 'HTPC',
+            'outro': 'Outro'
+        };
+
+        const parsedType = parseGenericOptions(lowerInput, typeMap) as MachineType;
+        const parsedPurpose = parseGenericOptions(lowerInput, purposeMap) as PurposeType;
+
+        if (parsedType) {
+            updatedPreferencias.perfilPC.machineType = parsedType;
+        }
+        if (parsedPurpose) {
+            updatedPreferencias.perfilPC.purpose = parsedPurpose;
+            if (!updatedPreferencias.perfilPC.machineType) {
+                updatedPreferencias.perfilPC.machineType = 'Computador Pessoal';
             }
         }
-    }
-
-    // 5. Condições Ambientais Específicas
-     if (lastAiQuestionText.includes("ar condicionado") || lastAiQuestionText.includes("ventilador") || lastAiQuestionText.includes("ventilação onde a máquina será usada")) {
-        if (lowerInput.includes("ar condicionado")) updatedPreferencias.ambiente.ventilacaoLocalPC = "Ar Condicionado";
-        else if (lowerInput.includes("ventilador")) updatedPreferencias.ambiente.ventilacaoLocalPC = "Ventilador";
-        // ... etc
-    }
-    if (lastAiQuestionText.includes("nível de poeira nesse local específico")) {
-        updatedPreferencias.ambiente.nivelPoeiraLocalPC = parseGenericOptions(lowerInput, FEMININE_DUST_LEVEL_MAP) as 'Baixa' | 'Média' | 'Alta';
-    }
-    if (lastAiQuestionText.includes("qual cômodo a máquina será utilizada") && !updatedPreferencias.ambiente.comodoPC && userInput.trim().length > 2) {
-        updatedPreferencias.ambiente.comodoPC = userInput.trim().charAt(0).toUpperCase() + userInput.trim().slice(1);
-    }
-    
-    // 6. Condições Ambientais Gerais
-     if (lastAiQuestionText.includes("ambiente geral") && lastAiQuestionText.includes("controle de temperatura") && !updatedPreferencias.ambiente.controleTemperaturaGeral) {
-        const tempControlMap: Record<string, EnvTempControlType> = { /* ... */ };
-        updatedPreferencias.ambiente.controleTemperaturaGeral = parseGenericOptions(lowerInput, tempControlMap) as EnvTempControlType;
-    }
-    if (lastAiQuestionText.includes("nível de poeira geral nesse ambiente") && !updatedPreferencias.ambiente.nivelPoeiraGeral) {
-        updatedPreferencias.ambiente.nivelPoeiraGeral = parseGenericOptions(lowerInput, FEMININE_DUST_LEVEL_MAP) as 'Baixa' | 'Média' | 'Alta';
-    }
-
-    // 7. Preferências Adicionais Gerais (parsing)
-    if (lastAiQuestionText.includes("preferência importante")) {
+    } else if (lastAiQuestionText.includes("uso principal")) {
+        const purposeMap: Record<string, PurposeType> = {
+            'jogo': 'Jogos', 'jogos': 'Jogos', 'game': 'Jogos',
+            'trabalho': 'Trabalho/Produtividade', 'produtividade': 'Trabalho/Produtividade', 'estudo': 'Trabalho/Produtividade', 'escritório': 'Trabalho/Produtividade',
+            'edição': 'Edição Criativa', 'edicao': 'Edição Criativa', 'editar': 'Edição Criativa',
+            'geral': 'Uso Geral', 'básico': 'Uso Geral', 'dia a dia': 'Uso Geral', 'navegar': 'Uso Geral',
+            'htpc': 'HTPC', 'sala': 'HTPC', 'filmes': 'HTPC', 'mídia': 'HTPC',
+            'outro': 'Outro'
+        };
+        updatedPreferencias.perfilPC.purpose = parseGenericOptions(lowerInput, purposeMap) as PurposeType;
+    } else if (lastAiQuestionText.includes("tipo de jogos")) {
+        const gameTypeMap: Record<string, GamingType> = {
+            'competitivo': 'Competitivos/eSports', 'esports': 'Competitivos/eSports', 'fps': 'Competitivos/eSports', 'valorant': 'Competitivos/eSports', 'cs': 'Competitivos/eSports',
+            'aaa': 'AAA/High-End', 'high-end': 'AAA/High-End', 'lançamentos': 'AAA/High-End', 'single-player': 'AAA/High-End', 'pesados': 'AAA/High-End',
+            'vr': 'VR', 'realidade virtual': 'VR',
+            'casual': 'Casual', 'indie': 'Casual', 'leve': 'Casual',
+            'outro': 'Outro', 'variados': 'Outro', 'todos': 'Outro'
+        };
+        updatedPreferencias.perfilPC.gamingType = parseGenericOptions(lowerInput, gameTypeMap) as GamingType;
+    } else if (lastAiQuestionText.includes("área de trabalho")) {
+        const workFieldMap: Record<string, WorkField> = {
+            'desenvolvimento': 'Desenvolvimento', 'programação': 'Desenvolvimento', 'dev': 'Desenvolvimento',
+            'design': 'Design Gráfico', 'gráfico': 'Design Gráfico',
+            'engenharia': 'Engenharia/3D', '3d': 'Engenharia/3D', 'cad': 'Engenharia/3D', 'arquitetura': 'Engenharia/3D',
+            'escritório': 'Escritório', 'office': 'Escritório',
+            'dados': 'Ciência de Dados', 'data science': 'Ciência de Dados', 'análise': 'Ciência de Dados',
+            'outro': 'Outro',
+        };
+        updatedPreferencias.perfilPC.workField = parseGenericOptions(lowerInput, workFieldMap) as WorkField;
+    } else if (lastAiQuestionText.includes("orçamento")) {
+      const budgetRangesMap: Record<string, { range: PreferenciaUsuarioInput['orcamentoRange'], value?: number }> = {
+          'econômico': { range: 'Econômico [R$2-4k]', value: 3000 }, 
+          'economico': { range: 'Econômico [R$2-4k]', value: 3000 }, 
+          'medio': { range: 'Médio [R$4-8k]', value: 6000 }, 
+          'médio': { range: 'Médio [R$4-8k]', value: 6000 }, 
+          'high-end': { range: 'High-End [R$8k+]', value: 10000 }, 
+          'alto': { range: 'High-End [R$8k+]', value: 10000 }, 
+      };
+      const numMatch = userInput.match(/(\d[\d.,]*\d|\d+)/g);
+      const parsedRange = parseGenericOptions(lowerInput, Object.keys(budgetRangesMap).reduce((acc, key) => ({...acc, [key]: budgetRangesMap[key].range}), {}));
+      
+      if(parsedRange) {
+        updatedPreferencias.orcamentoRange = parsedRange as PreferenciaUsuarioInput['orcamentoRange'];
+        updatedPreferencias.orcamento = budgetRangesMap[Object.keys(budgetRangesMap).find(k => lowerInput.includes(k))!].value;
+      }
+      
+      if (numMatch) {
+          const cleanedNumber = parseFloat(numMatch[0].replace(/\./g, '').replace(',', '.'));
+          if (!isNaN(cleanedNumber)) {
+               updatedPreferencias.orcamento = cleanedNumber;
+               if(!updatedPreferencias.orcamentoRange) updatedPreferencias.orcamentoRange = 'Personalizar'; 
+          }
+      }
+    } else if (lastAiQuestionText.includes("outra preferência")) {
         if (!updatedPreferencias.preferences) updatedPreferencias.preferences = userInput;
-        
-        const caseSizeMap: Record<string, CaseSizeType> = { "compacto": 'Mini-ITX', "pequeno": 'Micro-ATX', "padrão": 'ATX', "grande": 'Full Tower' };
-        updatedPreferencias.caseSize = parseGenericOptions(lowerInput, caseSizeMap) as CaseSizeType || updatedPreferencias.caseSize;
-
-        const noiseLevelMap: Record<string, NoiseLevelType> = { "silencioso": 'Silencioso', "quieto": 'Silencioso', "moderado": 'Moderado', "indiferente": 'Indiferente' };
-        updatedPreferencias.noiseLevel = parseGenericOptions(lowerInput, noiseLevelMap) as NoiseLevelType || updatedPreferencias.noiseLevel;
-        
-        const aestheticsMap: Record<string, AestheticsImportance> = { "rgb": 'Alta', "luzes": 'Alta', "estética": 'Média', "aparência": 'Média', "discreto": 'Baixa' };
-        updatedPreferencias.aestheticsImportance = parseGenericOptions(lowerInput, aestheticsMap) as AestheticsImportance || updatedPreferencias.aestheticsImportance;
     }
 
 
@@ -228,43 +225,88 @@ REGRAS DE INTERAÇÃO:
   }
 };
 
+export const preFilterComponents = (components: Componente[], budget?: number): Componente[] => {
+    const COMPONENT_COUNT_PER_CATEGORY = 15;
+
+    if (!budget || budget <= 0) {
+        const maxComponents = COMPONENT_COUNT_PER_CATEGORY * 8; // ~120 components
+        if (components.length <= maxComponents) return components;
+        const shuffled = [...components].sort(() => 0.5 - Math.random());
+        return shuffled.slice(0, maxComponents);
+    }
+
+    const budgetDistribution: Record<string, number> = {
+        'Processadores': 0.20,
+        'Placas de Vídeo': 0.35,
+        'Placas-Mãe': 0.12,
+        'Memória RAM': 0.08,
+        'SSD': 0.08,
+        'Fonte': 0.07,
+        'Gabinete': 0.05,
+        'Cooler': 0.05,
+    };
+
+    const finalFilteredComponents = new Map<string, Componente>();
+    const allCategories = [...new Set(components.map(c => c.Categoria))];
+
+    allCategories.forEach(category => {
+        const categoryComponents = components.filter(c => c.Categoria === category);
+        if (categoryComponents.length === 0) return;
+        
+        const targetPrice = budget * (budgetDistribution[category] || 0.05);
+
+        const sortedComponents = [...categoryComponents].sort((a, b) => {
+            const diffA = Math.abs(a.Preco - targetPrice);
+            const diffB = Math.abs(b.Preco - targetPrice);
+            return diffA - diffB;
+        });
+        
+        const topN = sortedComponents.slice(0, COMPONENT_COUNT_PER_CATEGORY);
+        topN.forEach(comp => {
+            if (!finalFilteredComponents.has(comp.id)) {
+                finalFilteredComponents.set(comp.id, comp);
+            }
+        });
+    });
+
+    console.log(`Pre-filtering reduced components from ${components.length} to ${finalFilteredComponents.size}`);
+    return Array.from(finalFilteredComponents.values());
+};
+
 
 export const getBuildRecommendation = async (
-  requisitos: PreferenciaUsuarioInput, // Tipo atualizado
-  availableComponents: Componente[] // Tipo atualizado
+  requisitos: PreferenciaUsuarioInput,
+  availableComponents: Componente[]
 ): Promise<AIRecommendation | null> => {
   if (!API_KEY) {
     console.error("API Key do Gemini não configurada para getBuildRecommendation");
     return null;
   }
+  
+  const smartFilteredComponents = preFilterComponents(availableComponents, requisitos.orcamento);
 
-  const componentSummary = availableComponents.map(c => ({
+  const componentSummary = smartFilteredComponents.map(c => ({
     id: c.id,
-    tipo: c.tipo,
-    nome: c.nome,
-    preco: c.preco,
-    key_specs: `${c.especificacao.socket || c.especificacao.type || ''} ${c.especificacao.chipset || c.especificacao.capacity_gb || ''} ${c.especificacao.tdp || c.especificacao.wattage_w || ''}`.trim()
+    Produto: c.Produto,
+    Preco: c.Preco,
+    Categoria: c.Categoria,
   }));
 
-  // O prompt precisará ser cuidadosamente ajustado para refletir a nova estrutura aninhada de requisitos.perfilPC e requisitos.ambiente
   const prompt = `
-Você é um especialista em montagem de PCs. Sua tarefa é recomendar uma build otimizada com base nos seguintes requisitos e componentes disponíveis.
+Você é um especialista em montagem de PCs. Sua tarefa é recomendar uma build otimizada com base nos seguintes requisitos e na lista de componentes disponíveis.
 
 Requisitos do Usuário (PreferenciaUsuarioInput):
 - Orçamento:
   - Faixa Escolhida: ${requisitos.orcamentoRange || 'Não especificado'}
   - Valor Numérico (BRL): ${requisitos.orcamento ? requisitos.orcamento.toFixed(2) : 'Não especificado, otimizar custo-benefício'}
-
 - Perfil do PC:
   - Tipo de Máquina: ${requisitos.perfilPC.machineType || 'Não especificado'}
   - Propósito Principal: ${requisitos.perfilPC.purpose || 'Não especificado'}
   - Detalhes (Jogos/Trabalho/etc.): ${requisitos.perfilPC.gamingType || requisitos.perfilPC.workField || requisitos.perfilPC.creativeEditingType || 'N/A'}
   - Softwares Principais: ${requisitos.perfilPC.softwareUsed || 'N/A'}
-
 - Ambiente:
   - Cidade (Clima): ${requisitos.ambiente.cidade ? `${requisitos.ambiente.cidade}, Temp. Média: ${requisitos.ambiente.temperaturaMediaCidade}°C` : 'Não informado'}
   - Local Específico do PC: Ventilação: ${requisitos.ambiente.ventilacaoLocalPC || 'Não informado'}, Poeira: ${requisitos.ambiente.nivelPoeiraLocalPC || 'Não informado'}
-
 - Preferências Gerais Adicionais:
   - Experiência de Montagem: ${requisitos.buildExperience || 'Não especificado'}
   - Preferência de Marcas: ${requisitos.brandPreference || 'Nenhuma'}
@@ -273,30 +315,36 @@ Requisitos do Usuário (PreferenciaUsuarioInput):
   - Nível de Ruído: ${requisitos.noiseLevel || 'Indiferente'}
   - Outras Preferências (texto livre): ${requisitos.preferences || 'Nenhuma'}
 
-Componentes Disponíveis (ID, Tipo, Nome, Preço, Especificações Chave):
+Componentes Disponíveis (ID, Nome do Produto, Preço, Categoria):
 ${JSON.stringify(componentSummary, null, 2)}
 
-Instruções:
-1.  Selecione UM componente para cada categoria essencial (CPU, Placa-mãe, RAM, Armazenamento, Fonte, Gabinete, Cooler CPU).
-2.  Placa de Vídeo (GPU) é OBRIGATÓRIA, exceto para Servidores de Arquivos/Web básicos.
-3.  Priorize compatibilidade (socket CPU/Mobo, tipo de RAM, etc.) e otimize para o \`purpose\` e \`orcamento\`.
-4.  Considere o CLIMA e o AMBIENTE para a refrigeração (gabinete e cooler). Ambientes quentes ou empoeirados precisam de melhor fluxo de ar e filtros.
-5.  Faça escolhas inteligentes para preferências não especificadas. Por exemplo:
-    - **Tamanho do Gabinete**: Se não especificado, escolha ATX Mid-Tower para a maioria. Para HTPC ou builds de escritório, considere Micro-ATX. Para multi-GPU ou refrigeração customizada, um Full Tower.
-    - **Nível de Ruído**: Se não especificado, priorize silêncio para HTPC e edição de áudio. Para jogos, o desempenho de refrigeração é mais importante que o silêncio absoluto.
-    - **Estética**: Se a importância for 'Baixa' ou não especificada, foque no custo-benefício e não em componentes com RGB.
-6.  Se o orçamento for insuficiente, explique no 'budgetNotes'.
-7.  Calcule o preço total. Forneça justificativa e avisos de compatibilidade.
+Instruções CRÍTICAS e OBRIGATÓRIAS:
+1.  **ANÁLISE E SELEÇÃO:** Sua tarefa é analisar a lista de "Componentes Disponíveis". Cada componente já possui um campo 'Categoria' definido. Você DEVE usar este campo para a seleção.
+    a.  **Use a Categoria Fornecida:** NÃO tente inferir a categoria do nome do produto. O campo 'Categoria' é a fonte da verdade.
+    b.  **Analise o 'Produto':** Dentro de cada categoria, analise o nome do 'Produto' para entender as especificações (ex: "Core i5-14600K", "DDR5", "RTX 4060") e garantir a compatibilidade.
 
-Responda OBRIGATORIAMENTE em formato JSON. O JSON deve ter a seguinte estrutura:
+2.  **REGRAS DE SELEÇÃO DE COMPONENTES:** Monte uma build completa e compatível.
+    -   **Essenciais (SEMPRE inclua UM de cada):** 'Processadores', 'Placas-Mãe', 'Memória RAM', 'SSD', 'Fonte', 'Gabinete'. Use as categorias exatas fornecidas.
+    -   **Placa de Vídeo:** É OBRIGATÓRIA, a menos que o propósito seja um servidor simples ou um PC de escritório muito básico E o processador escolhido tenha vídeo integrado (inferido do nome, ex: 'Ryzen 5 5600G').
+    -   **Cooler:** É ALTAMENTE RECOMENDADO, especialmente para processadores de alto desempenho (inferido do nome, ex: 'Core i7', 'Ryzen 7', ou sufixos 'K', 'X'). Se o orçamento for muito apertado, pode ser omitido se o processador incluir um cooler padrão (ex: 'Ryzen 5 5600').
+    -   **HD:** É OPCIONAL. Inclua apenas se o usuário precisar de muito armazenamento e o orçamento permitir, em adição ao SSD.
+
+3.  **COMPATIBILIDADE É REI (REGRA MAIS IMPORTANTE):** A principal prioridade é garantir 100% de compatibilidade. Verifique CUIDADOSAMENTE:
+    - **Soquete CPU vs Placa-mãe:** Ex: Um 'Processador Intel LGA1700' DEVE ser pareado com uma 'Placa-Mãe LGA1700'. Um 'Processador AMD AM5' DEVE ser pareado com uma 'Placa-Mãe AM5'.
+    - **Tipo de RAM:** Se a Placa-Mãe suporta 'DDR5', a 'Memória RAM' DEVE ser 'DDR5'. Se suporta 'DDR4', a RAM deve ser 'DDR4'. Verifique isso nos nomes dos produtos.
+    - **Tamanho (Form Factor):** Uma 'Placa-Mãe ATX' precisa de um 'Gabinete' que suporte ATX (Mid Tower, Full Tower). Uma 'Placa-Mãe Micro-ATX' cabe em gabinetes Micro-ATX ou maiores.
+    - **Potência da Fonte:** A 'Fonte' deve ter potência suficiente para todos os componentes, especialmente a Placa de Vídeo e o Processador. Para builds de alto desempenho, prefira fontes de 750W ou mais.
+
+4.  **FOCO NO ORÇAMENTO:** Tente montar a melhor build possível DENTRO do orçamento fornecido. Se não for possível, monte a build mais próxima e explique a situação no campo 'budgetNotes'.
+
+5.  **SAÍDA EM JSON (OBRIGATÓRIO):** Sua resposta DEVE ser um único bloco de código JSON, sem nenhum texto ou explicação antes ou depois. A estrutura do JSON deve ser:
 {
-  "recommendedComponentIds": ["id_cpu", "id_mobo", ...],
-  "justification": "Breve explicação das escolhas.",
+  "recommendedComponentIds": ["id_do_processador", "id_da_placa_mae", ...],
+  "justification": "Explicação concisa das suas escolhas, focando em como elas atendem às necessidades e orçamento do usuário e como a compatibilidade foi garantida.",
   "estimatedTotalPrice": 1234.56,
-  "budgetNotes": "Notas sobre o orçamento, se aplicável.",
-  "compatibilityWarnings": ["Aviso 1", "Aviso 2"]
+  "budgetNotes": "Se a build exceder o orçamento ou for muito abaixo, explique o porquê aqui. Se o orçamento for adequado, diga 'O orçamento foi bem utilizado'.",
+  "compatibilityWarnings": ["Se houver alguma pequena dúvida ou observação sobre compatibilidade (ex: 'Pode ser necessário atualizar a BIOS da placa-mãe'), liste aqui. Se não houver, deixe um array vazio []."]
 }
-Não inclua nenhum texto fora do bloco JSON.
 `;
 
   try {

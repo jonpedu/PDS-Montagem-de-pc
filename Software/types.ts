@@ -32,7 +32,7 @@ export type MachineType =
   | 'Servidor' 
   | 'Estação de Trabalho'
   | 'Máquina para Mineração' 
-  | 'PC para Streaming'
+  | 'PC para Streaming' 
   | 'Outro'
   | 'Customizado';
 
@@ -167,30 +167,26 @@ export interface PreferenciaUsuarioInput { // Anteriormente AnamnesisData
 }
 
 
-export interface Componente { // Anteriormente PCComponent
+export interface Componente {
   id: string;
-  tipo: ComponentCategory; // Diagrama: tipo: TipoComponente
-  nome: string; // Diagrama: nome: String
-  brand: string; // Extra, manter
-  preco: number; // Diagrama: preco: double
-  imageUrl?: string; // Extra, manter
-  // Diagrama: especificacao: Map<String, String>. Código usa Record mais flexível.
-  especificacao: Record<string, string | number | string[]>; 
-  compatibilityKey?: string; // Extra, manter
-  dataLancamento?: string; // Diagrama: dataLancamento: Date. Adicionar se disponível (string ISO)
-  linkCompra?: string; // Diagrama: linkCompra: String. Adicionar se disponível
-}
+  Produto: string; // was nome
+  Preco: number; // was Preço
+  LinkCompra?: string;
+  Categoria: string;
 
-// SelectedComponent pode ser removido se for idêntico a Componente.
-// Se SelectedComponent tiver atributos próprios (ex: quantidade), então manter.
-// Por ora, assumindo que pode ser simplificado. Build.componentes usará Componente[].
-export interface SelectedComponent extends Componente {} // Avaliar remoção
+  // Fields to be inferred by AI, so they are optional now.
+  brand?: string;
+  imageUrl?: string;
+  especificacao?: Record<string, string | number | string[]>;
+  compatibilityKey?: string;
+  dataLancamento?: string;
+}
 
 export interface Build {
   id: string;
   nome: string; // Diagrama: nome: String
   userId?: string; // Extra, útil para persistência
-  componentes: SelectedComponent[]; // Diagrama: componentes: List<Componente>
+  componentes: Componente[]; // Diagrama: componentes: List<Componente>
   orcamento: number; // Diagrama: orcamento: double (era totalPrice)
   dataCriacao: string; // Diagrama: dataCriacao: Date (era createdAt, string ISO)
   
@@ -218,7 +214,7 @@ export type BuildMode = 'auto' | null; // Avaliar se ainda é usado
 
 // Para compatibilidade - pode ser usado por um futuro compatibilityService.ts
 export interface CompatibilityRules {
-  [key: string]: (component: Componente, buildSoFar: SelectedComponent[]) => string | null;
+  [key: string]: (component: Componente, buildSoFar: Componente[]) => string | null;
 }
 
 // Estrutura para dados de clima da cidade (já existente, parece OK)

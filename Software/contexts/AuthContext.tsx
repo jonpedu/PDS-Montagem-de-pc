@@ -21,47 +21,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [justAuthenticated, setJustAuthenticated] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
   const fetchUserProfile = useCallback(async (supabaseUser: SupabaseUser): Promise<User | null> => {
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('nome, email')
-      .eq('id', supabaseUser.id)
-      .single();
+    // Retry logic in case profile creation has a delay after signup trigger
+    for (let i = 0; i < 3; i++) {
+        const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('nome, email')
+            .eq('id', supabaseUser.id)
+            .single();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116: no rows found
-      console.error("Error fetching user profile:", error);
-      return null;
+        if (error && error.code !== 'PGRST116') {
+            console.error("Error fetching user profile:", error);
+            return null; // Don't retry on db errors, only on not found
+        }
+        if (profile) {
+            return { id: supabaseUser.id, nome: profile.nome, email: profile.email };
+        }
+        if (i < 2) { // if not last attempt
+             await new Promise(resolve => setTimeout(resolve, 300)); // wait before retrying
+        }
     }
-    
-    if (profile) {
-      return { id: supabaseUser.id, nome: profile.nome, email: profile.email };
-    }
+    console.error("Profile not found for user after retries:", supabaseUser.id);
     return null;
-
   }, []);
 
+  // Main listener for auth state changes from Supabase
   useEffect(() => {
-    const getInitialSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-       if (error) {
-         console.error("Error getting initial session:", error);
-         setIsLoading(false);
-         return;
-       }
-
-      setSession(session);
-      if (session?.user) {
-        const profile = await fetchUserProfile(session.user);
-        setCurrentUser(profile);
-      }
-      setIsLoading(false);
-    };
-    
-    getInitialSession();
-
+    setIsLoading(true);
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session);
       if (session?.user) {
@@ -70,11 +60,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } else {
         setCurrentUser(null);
       }
-       if (event === 'INITIAL_SESSION') {
-        // already handled by getInitialSession
-      } else {
-         setIsLoading(false);
-      }
+      setIsLoading(false);
     });
 
     return () => {
@@ -82,47 +68,60 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, [fetchUserProfile]);
 
-  const handleAuthSuccessNavigation = () => {
-    const navState = location.state as any;
-    const fromLocation = navState?.from;
-    const originalPath = fromLocation?.pathname || '/dashboard';
-    
-    // Check for pending actions after login
-    if (navState?.pendingAction) {
-       navigate(originalPath, { replace: true, state: { fromLogin: true, action: navState.pendingAction } });
-    } else {
-       navigate(originalPath, { replace: true });
+  // Effect to handle navigation AFTER a successful login/register
+  useEffect(() => {
+    if (currentUser && justAuthenticated) {
+      setJustAuthenticated(false); // Reset the trigger
+
+      const navState = location.state as any;
+      const fromLocation = navState?.from;
+      const originalPath = fromLocation?.pathname || '/dashboard';
+      
+      if (navState?.pendingAction) {
+         navigate(originalPath, { replace: true, state: { fromLogin: true, action: navState.pendingAction } });
+      } else {
+         navigate(originalPath, { replace: true });
+      }
+    }
+  }, [currentUser, justAuthenticated, location, navigate]);
+
+
+  const login = async (email: string, pass: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    if (error) throw error;
+    if (data.session) {
+      // Set a flag to trigger the navigation effect once the user state is updated by onAuthStateChange
+      setJustAuthenticated(true);
     }
   };
 
-  const login = async (email: string, pass: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
-    if (error) throw error;
-    handleAuthSuccessNavigation();
-  };
-
   const register = async (nome: string, email: string, pass: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password: pass,
       options: {
         data: {
-          nome: nome, // This will be used by the trigger to create the profile
+          nome: nome,
         },
       },
     });
     if (error) throw error;
-    handleAuthSuccessNavigation();
+    
+    if (data.session) { // User is logged in immediately (e.g., auto-confirm is on)
+      setJustAuthenticated(true);
+    } else if (data.user) { // Email confirmation is likely required
+      alert('Cadastro realizado! Por favor, verifique seu e-mail para confirmar sua conta e poder fazer o login.');
+      navigate('/login');
+    }
   };
 
   const logout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+    // Clear session storage and navigate. onAuthStateChange will handle state cleanup.
     sessionStorage.removeItem('proceededAnonymously');
     sessionStorage.removeItem('pendingBuild'); 
     sessionStorage.removeItem('pendingAiNotes');
-    setCurrentUser(null);
-    setSession(null);
     navigate('/');
   };
 
@@ -133,25 +132,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const supabaseUserUpdates: any = {};
     if (email) supabaseUserUpdates.email = email;
     if (password) supabaseUserUpdates.password = password;
-
-    // Update auth user if email or password changed
+    
     if (Object.keys(supabaseUserUpdates).length > 0) {
-      const { error: authError } = await supabase.auth.updateUser(supabaseUserUpdates);
+      const { data, error: authError } = await supabase.auth.updateUser(supabaseUserUpdates);
       if (authError) throw authError;
+      // After email update, user might need to re-verify. Supabase handles this.
+      if(data.user) {
+          const updatedProfile = await fetchUserProfile(data.user);
+          setCurrentUser(updatedProfile);
+      }
     }
     
-    // Update profiles table if name changed
-    if (nome) {
+    if (nome && nome !== currentUser.nome) {
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ nome })
         .eq('id', currentUser.id);
       if (profileError) throw profileError;
+      // Optimistically update state
+      setCurrentUser(prev => prev ? { ...prev, nome } : null);
     }
-    
-    // Refetch the user profile to update state
-    const updatedProfile = await fetchUserProfile(session.user);
-    setCurrentUser(updatedProfile);
   };
 
   const value: AuthContextType = {

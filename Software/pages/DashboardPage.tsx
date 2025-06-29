@@ -1,11 +1,11 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Build } from '../types';
+import { Build, Componente, PreferenciaUsuarioInput } from '../types';
 import Button from '../components/core/Button';
 import LoadingSpinner from '../components/core/LoadingSpinner';
 import { supabase } from '../services/supabaseClient';
+import { getComponents } from '../services/componentService';
 
 const SavedBuildCard: React.FC<{ build: Build; onDelete: (buildId: string) => void }> = ({ build, onDelete }) => {
   return (
@@ -35,12 +35,22 @@ const DashboardPage: React.FC = () => {
     if (!currentUser) return;
 
     setIsLoadingBuilds(true);
+    
+    const allComponents = await getComponents();
+    if (allComponents.length === 0) {
+      console.error("Failed to load components from CSV for dashboard.");
+      alert("Não foi possível carregar os dados dos componentes.");
+      setIsLoadingBuilds(false);
+      return;
+    }
+    const componentMap = new Map(allComponents.map(c => [c.id, c]));
+
     const { data, error } = await supabase
       .from('builds')
       .select(`
         *,
-        componentes:build_components(
-          components(*)
+        build_components(
+          component_id
         )
       `)
       .eq('user_id', currentUser.id)
@@ -48,13 +58,23 @@ const DashboardPage: React.FC = () => {
 
     if (error) {
       console.error("Error fetching builds:", error);
-      alert("Não foi possível carregar suas builds.");
+      alert(`Não foi possível carregar suas builds: ${error.message}`);
     } else if (data) {
-       const formattedBuilds = data.map(build => ({
-        ...build,
+       const formattedBuilds: Build[] = data.map(build => {
         // @ts-ignore
-        componentes: build.componentes.map(bc => bc.components).filter(Boolean)
-      })) as Build[];
+        const components = build.build_components.map(bc => componentMap.get(String(bc.component_id))).filter(Boolean) as Componente[];
+        
+        return {
+          id: build.id,
+          nome: build.nome,
+          userId: build.user_id,
+          componentes: components,
+          orcamento: build.orcamento,
+          dataCriacao: build.data_criacao,
+          requisitos: build.requisitos as PreferenciaUsuarioInput | undefined,
+          avisosCompatibilidade: build.avisos_compatibilidade || [],
+        };
+      });
       setSavedBuilds(formattedBuilds);
     }
     setIsLoadingBuilds(false);
@@ -77,7 +97,7 @@ const DashboardPage: React.FC = () => {
 
     if (error) {
         console.error("Error deleting build:", error);
-        alert("Falha ao excluir a build.");
+        alert(`Falha ao excluir a build: ${error.message}`);
     } else {
         setSavedBuilds(prevBuilds => prevBuilds.filter(b => b.id !== buildId));
         alert("Build excluída com sucesso.");
