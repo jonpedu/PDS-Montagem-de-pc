@@ -6,7 +6,7 @@ Este guia contém tudo o que você precisa para rodar seu app localmente.
 
 **Pré-requisitos:** Node.js
 
-Antes de instalar as dependências, navegue até a raiz do projeto na pasta `Software`:
+Antes de instalar as dependências, navegue até a raiz do projeto na pasta `MONTAGEM_DE_PC`:
 
 ```bash
 cd Software
