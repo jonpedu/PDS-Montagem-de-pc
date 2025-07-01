@@ -6,23 +6,17 @@ Este guia contém tudo o que você precisa para rodar seu app localmente.
 
 **Pré-requisitos:** Node.js
 
-Antes de instalar as dependências, navegue até a raiz do projeto na pasta `codigo\MONTAGEM_DE_PC`:
+Antes de instalar as dependências, navegue até a raiz do projeto na pasta. Abra o terminal e execute: cd codigo\MONTAGEM_DE_PC:
+
 
 
 1. Instale as dependências:
    ```bash
-   # Instale as dependências principais do projeto:
    npm install
-
-   # Instale os tipos do React e React DOM para desenvolvimento em TypeScript:
    npm install --save-dev @types/react @types/react-dom
-
-   # Adicione o Vite como dependência de desenvolvimento:
    npm install vite --save-dev
-
-   # Instale a biblioteca jsPDF para geração de PDFs:
-   npm install jspdf
-
+   npm install jspdf
+   ```
    # (Opcional) Corrija automaticamente vulnerabilidades encontradas nas dependências:
    npm audit fix --force
    ```
