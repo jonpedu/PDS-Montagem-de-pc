@@ -1,11 +1,14 @@
-
+// Importações do React, React Router e componentes de UI.
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Button from '../components/core/Button';
 
+// Componente da página inicial (Homepage).
+// Serve como a página de destino da aplicação, apresentando seus recursos.
 const HomePage: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center text-center py-12">
+      {/* Cabeçalho principal com o título e a descrição da aplicação. */}
       <header className="mb-12">
         <h1 className="text-5xl md:text-6xl font-bold text-accent mb-4">
           CodeTugaBuilds
@@ -15,12 +18,14 @@ const HomePage: React.FC = () => {
         </p>
       </header>
 
+      {/* Seção de chamada para ação (Call to Action) principal. */}
       <div className="flex justify-center w-full mb-16">
         <div className="bg-secondary p-8 rounded-xl shadow-2xl transform hover:scale-105 transition-transform duration-300 max-w-lg">
           <h2 className="text-3xl font-semibold text-accent mb-4">Montagem Automática com IA</h2>
           <p className="text-neutral-dark mb-6">
             Não sabe por onde começar? Deixe nossa Inteligência Artificial guiar você. Responda algumas perguntas e receba uma build personalizada em minutos.
           </p>
+          {/* O botão leva o usuário para a página de montagem. */}
           <Link to="/build">
             <Button variant="primary" size="lg" className="w-full">
               Iniciar Recomendação IA
@@ -29,6 +34,7 @@ const HomePage: React.FC = () => {
         </div>
       </div>
 
+      {/* Seção que lista os principais recursos e benefícios da aplicação. */}
       <section className="max-w-3xl w-full text-left">
         <h3 className="text-2xl font-semibold text-accent mb-6 text-center">Por que CodeTugaBuilds?</h3>
         <ul className="space-y-4">

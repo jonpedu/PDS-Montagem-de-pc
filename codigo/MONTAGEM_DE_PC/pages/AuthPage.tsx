@@ -1,28 +1,36 @@
-
+// Importações do React, hooks e componentes de UI.
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Button from '../components/core/Button';
 import LoadingSpinner from '../components/core/LoadingSpinner';
 
+// Define as propriedades que a página pode receber.
 interface AuthPageProps {
-  mode: 'login' | 'register';
+  mode: 'login' | 'register'; // Determina se a página está em modo de login ou registro.
 }
 
+// Componente que renderiza a página de login ou de registro.
 const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
-  const [nome, setNome] = useState(''); // Alterado de name para nome
+  // Estados para os campos do formulário.
+  const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Obtém as funções e o estado de carregamento do contexto de autenticação.
   const { login, register, isLoading } = useAuth();
-  // const navigate = useNavigate(); // Não é mais necessário aqui, AuthContext cuida da navegação
+  // O hook `useNavigate` não é mais necessário aqui para redirecionamento,
+  // pois o `AuthContext` agora gerencia a navegação após a autenticação.
   const location = useLocation(); 
 
+  // Função para lidar com o envio do formulário.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
+    // Lógica para o modo de registro.
     if (mode === 'register') {
       if (password !== confirmPassword) {
         setError('As senhas não coincidem.');
@@ -33,13 +41,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
         return;
       }
       try {
-        await register(nome, email, password); // Passa nome, email, password
+        await register(nome, email, password);
       } catch (err: any) {
         setError(err.message || 'Falha ao registrar. Tente novamente.');
       }
-    } else { // Login
+    } else { // Lógica para o modo de login.
       try {
-        await login(email, password); // Passa email, password
+        await login(email, password);
       } catch (err: any) {
         setError(err.message || 'Falha ao fazer login. Verifique suas credenciais.');
       }
@@ -55,27 +63,30 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
           </h2>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {/* Exibe mensagens de erro, se houver. */}
           {error && <p className="text-center text-sm text-red-400 bg-red-900/50 p-3 rounded-md">{error}</p>}
           
+          {/* Campo de nome, exibido apenas no modo de registro. */}
           {mode === 'register' && (
             <div className="rounded-md shadow-sm -space-y-px">
               <div>
                 <label htmlFor="nome" className="sr-only">Nome</label> 
                 <input
-                  id="nome" // Alterado de name para nome
-                  name="nome" // Alterado de name para nome
+                  id="nome"
+                  name="nome"
                   type="text"
                   autoComplete="name"
                   required
                   className="appearance-none rounded-none relative block w-full px-3 py-3 border border-neutral-dark bg-primary placeholder-neutral-dark text-neutral rounded-t-md focus:outline-none focus:ring-accent focus:border-accent focus:z-10 sm:text-sm"
                   placeholder="Nome Completo"
-                  value={nome} // Alterado de name para nome
-                  onChange={(e) => setNome(e.target.value)} // Alterado de setName para setNome
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
                 />
               </div>
             </div>
           )}
 
+          {/* Campos de email e senha. */}
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="email-address" className="sr-only">Email</label>
@@ -94,7 +105,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
             <div>
               <label htmlFor="password_login" className="sr-only">Senha</label>
               <input
-                id="password_login" // Mantido id para consistência de CSS se houver
+                id="password_login"
                 name="password"
                 type="password"
                 autoComplete={mode === 'login' ? "current-password" : "new-password"}
@@ -107,6 +118,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
             </div>
           </div>
 
+          {/* Campo de confirmação de senha, exibido apenas no modo de registro. */}
           {mode === 'register' && (
              <div className="rounded-md shadow-sm -space-y-px">
                 <div>
@@ -128,12 +140,14 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
 
 
           <div>
+            {/* Botão de envio, que mostra um spinner quando `isLoading` é true. */}
             <Button type="submit" className="w-full" variant="primary" size="lg" isLoading={isLoading}>
               {isLoading ? <LoadingSpinner size="sm" /> : (mode === 'login' ? 'Entrar' : 'Registrar')}
             </Button>
           </div>
         </form>
 
+        {/* Links para alternar entre as páginas de login e registro. */}
         <div className="text-sm text-center">
           {mode === 'login' ? (
             <p className="text-neutral-dark">
