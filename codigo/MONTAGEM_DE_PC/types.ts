@@ -1,23 +1,37 @@
-// Arquivo Central de Tipos (types.ts)
-// Este arquivo define todas as principais estruturas de dados (interfaces e tipos)
-// usadas em toda a aplicação, garantindo consistência e segurança de tipos.
+/**
+ * @file Arquivo Central de Tipos (types.ts)
+ * @module types
+ * @description
+ * Este arquivo define todas as principais estruturas de dados (interfaces e tipos)
+ * usadas em toda a aplicação, garantindo consistência e segurança de tipos.
+ */
 
-// Representa a estrutura de um usuário logado na aplicação.
+/**
+ * Representa a estrutura de um usuário logado na aplicação.
+ */
 export interface User {
-  id: string; // ID único do usuário, geralmente do Supabase.
-  nome: string; // Nome do usuário.
-  email: string; // Email do usuário, usado para login.
+  /** ID único do usuário, geralmente do Supabase. */
+  id: string;
+  /** Nome do usuário. */
+  nome: string;
+  /** Email do usuário, usado para login. */
+  email: string;
 }
 
-// Interface interna para serviços de autenticação, nunca deve ser exposta ou armazenada.
-// O campo 'password_mock' é apenas para propósitos de simulação interna.
+/**
+ * Interface interna para serviços de autenticação, nunca deve ser exposta ou armazenada.
+ * O campo 'password_mock' é apenas para propósitos de simulação interna.
+ * @internal
+ */
 export interface UserWithPassword extends User {
+  /** Senha mock para simulação interna. */
   password_mock: string;
 }
 
-
-// Enumeração das categorias de componentes de hardware.
-// Usado para classificar e filtrar componentes.
+/**
+ * Enumeração das categorias de componentes de hardware.
+ * Usado para classificar e filtrar componentes.
+ */
 export enum ComponentCategory {
   CPU = "Processador",
   MOTHERBOARD = "Placa-mãe",
@@ -29,7 +43,7 @@ export enum ComponentCategory {
   COOLER = "Cooler",
 }
 
-// Tipos de máquina que o usuário pode querer montar.
+/** Tipos de máquina que o usuário pode querer montar. */
 export type MachineType = 
   | 'Computador Pessoal' 
   | 'Servidor' 
@@ -39,7 +53,7 @@ export type MachineType =
   | 'Outro'
   | 'Customizado';
 
-// Propósitos principais para o uso do PC.
+/** Propósitos principais para o uso do PC. */
 export type PurposeType = 
   | 'Jogos' 
   | 'Trabalho/Produtividade' 
@@ -48,7 +62,7 @@ export type PurposeType =
   | 'HTPC' 
   | 'Outro';
 
-// Detalhes específicos para cada propósito, usados para refinar as perguntas do chatbot.
+/** Detalhes específicos para cada propósito, usados para refinar as perguntas do chatbot. */
 export type GamingType = 'Competitivos/eSports' | 'AAA/High-End' | 'VR' | 'Casual' | 'Outro';
 export type WorkField = 'Desenvolvimento' | 'Design Gráfico' | 'Engenharia/3D' | 'Escritório' | 'Ciência de Dados' | 'Outro';
 export type CreativeEditingType = 'Vídeo' | 'Foto' | 'Áudio' | '3D' | 'Outro';
@@ -63,36 +77,54 @@ export type EnvTempControlType = 'Ar condicionado' | 'Ventilação natural' | 'O
 export type CaseSizeType = 'Mini-ITX' | 'Micro-ATX' | 'ATX' | 'Full Tower' | 'Outro';
 export type NoiseLevelType = 'Silencioso' | 'Moderado' | 'Indiferente';
 
-// Representa as condições ambientais onde o PC será utilizado.
-// A IA usa esses dados para otimizar a refrigeração.
+/**
+ * Representa as condições ambientais onde o PC será utilizado.
+ * A IA usa esses dados para otimizar a refrigeração.
+ */
 export interface Ambiente {
-  // Dados da cidade (obtidos via serviços externos).
+  /** Dados da cidade (obtidos via serviços externos). */
   cidade?: string;
+  /** Código do país (ex: "BRA"). */
   codigoPais?: string;
+  /** Temperatura média anual da cidade em Celsius. */
   temperaturaMediaAnual?: number;
+  /** Temperatura máxima média anual da cidade em Celsius. */
   temperaturaMaximaAnual?: number;
+  /** Temperatura mínima média anual da cidade em Celsius. */
   temperaturaMinimaAnual?: number;
 
-  // Dados do local específico do PC (informados pelo usuário).
+  /** Dados do local específico do PC (informados pelo usuário). */
   ventilacaoLocalPC?: 'Ar Condicionado' | 'Ventilador' | 'Ambiente Externo' | 'Outro';
+  /** Nível de poeira no local do PC. */
   nivelPoeiraLocalPC?: 'Baixa' | 'Média' | 'Alta';
+  /** Cômodo onde o PC ficará. */
   comodoPC?: string;
 
-  // Condições ambientais gerais.
+  /** Condições ambientais gerais. */
   controleTemperaturaGeral?: EnvTempControlType;
+  /** Nível de poeira geral. */
   nivelPoeiraGeral?: 'Baixa' | 'Média' | 'Alta';
   
-  // Mapeamento de atributos do diagrama (podem ser inferidos).
+  /** Temperatura ambiente informada. Pode ser inferida. */
   temperatura?: number; 
+  /** Nível de umidade no local. */
   umidade?: 'Baixa' | 'Média' | 'Alta'; 
+  /** Se o local possui climatização. */
   climatizacao?: boolean; 
+  /** Descrição geral da localização. */
   localizacao?: string;
 }
 
-// Agrupa todos os detalhes específicos do perfil do PC.
+/**
+ * Agrupa todos os detalhes específicos do perfil do PC.
+ * Contém campos que são progressivamente preenchidos pelo chatbot.
+ */
 export interface PerfilPCDetalhado {
+  /** O tipo de máquina a ser montada. */
   machineType?: MachineType;
+  /** O propósito principal da máquina. */
   purpose?: PurposeType;
+  
   // Campos detalhados para cada propósito.
   gamingType?: GamingType;
   monitorSpecs?: string;
@@ -123,89 +155,148 @@ export interface PerfilPCDetalhado {
   workType?: string; 
 }
 
-// Estrutura principal que agrega todas as informações coletadas do usuário.
-// Este objeto é construído progressivamente pelo chatbot e enviado à IA para a recomendação final.
+/**
+ * Estrutura principal que agrega todas as informações coletadas do usuário.
+ * Este objeto é construído progressivamente pelo chatbot e enviado à IA para a recomendação final.
+ */
 export interface PreferenciaUsuarioInput { 
+  /** O orçamento total para a build. */
   orcamento?: number;
+  /** Faixa de orçamento pré-definida ou personalizada. */
   orcamentoRange?: 'Econômico [R$2-4k]' | 'Médio [R$4-8k]' | 'High-End [R$8k+]' | 'Personalizar';
   
-  perfilPC: PerfilPCDetalhado; // Detalhes do tipo e propósito do PC.
-  ambiente: Ambiente; // Informações sobre o ambiente de uso.
+  /** Detalhes do tipo e propósito do PC. */
+  perfilPC: PerfilPCDetalhado;
+  /** Informações sobre o ambiente de uso. */
+  ambiente: Ambiente;
 
   // Preferências gerais do usuário.
-  ownedComponents?: string; // Componentes que o usuário já possui.
+  /** Componentes que o usuário já possui e pretende reutilizar. */
+  ownedComponents?: string;
+  /** Experiência do usuário com montagem de PCs. */
   buildExperience?: BuildExperience;
+  /** Preferência por marcas específicas (ex: "AMD", "Nvidia, Intel"). */
   brandPreference?: string;
+  /** A importância da estética (ex: RGB, design do gabinete). */
   aestheticsImportance?: AestheticsImportance;
+  /** Preferência de tamanho para o gabinete. */
   caseSize?: CaseSizeType;
+  /** Nível de ruído aceitável para o sistema. */
   noiseLevel?: NoiseLevelType;
+  /** Portas ou conexões específicas necessárias. */
   specificPorts?: string;
-  preferences?: string; // Campo genérico para outras preferências.
+  /** Campo genérico para outras preferências não cobertas. */
+  preferences?: string;
   
-  // Permite flexibilidade durante a coleta de dados, mas deve ser usado com cautela.
-  [key: string]: any; 
+  /** Permite flexibilidade durante a coleta de dados, mas deve ser usado com cautela. */
+  [key: string]: unknown; 
 }
 
-
-// Representa um componente de hardware individual.
+/**
+ * Representa um componente de hardware individual.
+ */
 export interface Componente {
-  id: string; // ID único do componente.
-  Produto: string; // Nome completo do produto.
-  Preco: number; // Preço do componente em BRL.
-  LinkCompra?: string; // URL para a página de compra.
-  Categoria: string; // Categoria do componente (ex: "Processadores").
+  /** ID único do componente, geralmente do banco de dados. */
+  id: string;
+  /** Nome completo do produto. */
+  Produto: string;
+  /** Preço do componente em BRL. */
+  Preco: number;
+  /** URL para a página de compra do produto. */
+  LinkCompra?: string;
+  /** Categoria do componente (ex: "Processador"). */
+  Categoria: string;
 
-  // Campos opcionais, podem ser inferidos ou adicionados posteriormente.
+  /** Marca do componente, inferida do nome do produto. */
   brand?: string;
+  /** URL para uma imagem do componente. */
   imageUrl?: string;
+  /** Detalhes técnicos do componente. */
   especificacao?: Record<string, string | number | string[]>;
-  compatibilityKey?: string; // Chave para verificação de compatibilidade (ex: "LGA1700").
+  /** Chave para verificação de compatibilidade (ex: "LGA1700", "AM5"). */
+  compatibilityKey?: string;
+  /** Data de lançamento do componente. */
   dataLancamento?: string;
 }
 
-// Representa uma montagem de PC completa.
+/**
+ * Representa uma montagem de PC completa, com todos os seus componentes e metadados.
+ */
 export interface Build {
-  id: string; // ID único da build.
-  nome: string; // Nome dado à build (ex: "Minha Build Gamer").
-  userId?: string; // ID do usuário que criou a build.
-  componentes: Componente[]; // Lista de componentes que formam a build.
-  orcamento: number; // Custo total da build.
-  dataCriacao: string; // Data de criação no formato ISO.
+  /** ID único da build, geralmente um UUID. */
+  id: string;
+  /** Nome dado à build (ex: "Minha Build Gamer"). */
+  nome: string;
+  /** ID do usuário que criou a build, se aplicável. */
+  userId?: string;
+  /** Lista de componentes que formam a build. */
+  componentes: Componente[];
+  /** Custo total da build, somando o preço de todos os componentes. */
+  orcamento: number;
+  /** Data de criação no formato ISO (YYYY-MM-DDTHH:mm:ss.sssZ). */
+  dataCriacao: string;
   
-  requisitos?: PreferenciaUsuarioInput; // Os requisitos do usuário que geraram esta build.
-  justificativa?: string; // Visão geral ou justificativa da IA para a build, incluindo avisos.
-  avisos_compatibilidade?: string[]; // Array de avisos de compatibilidade para persistência no DB.
+  /** Os requisitos do usuário que geraram esta build. */
+  requisitos?: PreferenciaUsuarioInput;
+  /** Visão geral ou justificativa da IA para a build, incluindo avisos. */
+  justificativa?: string;
+  /** Array de avisos de compatibilidade para persistência no DB. */
+  avisos_compatibilidade?: string[];
 }
 
-
-// Representa uma única mensagem na interface do chat.
+/**
+ * Representa uma única mensagem na interface do chat.
+ */
 export interface ChatMessage {
+  /** ID único da mensagem. */
   id: string;
-  sender: 'user' | 'ai' | 'system'; // Quem enviou a mensagem.
+  /** Quem enviou a mensagem. */
+  sender: 'user' | 'ai' | 'system';
+  /** O conteúdo textual da mensagem. */
   text: string;
+  /** Timestamp de quando a mensagem foi criada. */
   timestamp: number;
 }
 
-// Estrutura da recomendação retornada pela IA.
+/**
+ * Estrutura da recomendação retornada pela IA após a anamnese.
+ * @deprecated Esta estrutura foi substituída pela resposta JSON em `getLiveBuildResponse`.
+ */
 export interface AIRecommendation {
-  recommendedComponentIds: string[]; // IDs dos componentes recomendados.
-  justification: string; // Explicação das escolhas da IA.
-  estimatedTotalPrice?: number; // Preço total estimado.
-  budgetNotes?: string; // Notas sobre como o orçamento foi utilizado.
-  compatibilityWarnings?: string[]; // Avisos de compatibilidade.
+  /** IDs dos componentes recomendados pela IA. */
+  recommendedComponentIds: string[];
+  /** Explicação detalhada das escolhas da IA. */
+  justification: string;
+  /** Preço total estimado da build. */
+  estimatedTotalPrice?: number;
+  /** Notas sobre como o orçamento foi utilizado. */
+  budgetNotes?: string;
+  /** Avisos de compatibilidade ou gargalos potenciais. */
+  compatibilityWarnings?: string[];
 }
 
-// Tipo obsoleto, avaliar remoção.
+/**
+ * Tipo obsoleto, avaliar remoção.
+ * @deprecated Não utilizado ativamente.
+ */
 export type BuildMode = 'auto' | null;
 
-// Estrutura para futuras regras de compatibilidade.
+/**
+ * Estrutura para futuras regras de compatibilidade.
+ * @internal
+ */
 export interface CompatibilityRules {
   [key: string]: (component: Componente, buildSoFar: Componente[]) => string | null;
 }
 
-// Estrutura para os dados de clima obtidos da API.
+/**
+ * Estrutura para os dados de clima obtidos da API externa.
+ */
 export interface CityWeatherData {
+  /** Temperatura média anual em Celsius. */
   avgTemp: number;
+  /** Temperatura máxima média anual em Celsius. */
   maxTemp: number;
+  /** Temperatura mínima média anual em Celsius. */
   minTemp: number;
 }

@@ -1,16 +1,45 @@
-// Importa o React.
+/**
+ * @file Componente LoadingSpinner.
+ * @module components/core/LoadingSpinner
+ * @description Componente de UI reutilizável para exibir um ícone de carregamento (spinner),
+ * com opções de tamanho e texto.
+ */
+
 import React from 'react';
 
-// Define as propriedades que o componente LoadingSpinner pode receber.
+/**
+ * @interface LoadingSpinnerProps
+ * @description Propriedades para o componente LoadingSpinner.
+ */
 interface LoadingSpinnerProps {
-  size?: 'sm' | 'md' | 'lg'; // Tamanho do spinner.
-  color?: string; // Classe de cor do Tailwind CSS (ex: 'text-accent').
-  text?: string; // Texto opcional para ser exibido abaixo do spinner.
+  /**
+   * O tamanho do spinner.
+   * @default 'md'
+   */
+  size?: 'sm' | 'md' | 'lg';
+  /**
+   * A classe de cor do Tailwind CSS para o spinner (ex: 'text-accent').
+   * @default 'text-accent'
+   */
+  color?: string;
+  /**
+   * Texto opcional a ser exibido abaixo do spinner.
+   */
+  text?: string;
 }
 
-// Componente funcional para exibir um ícone de carregamento.
+/**
+ * @component LoadingSpinner
+ * @description Um componente funcional para exibir um ícone de carregamento animado.
+ * Ideal para indicar operações em andamento.
+ * @param {LoadingSpinnerProps} props - As propriedades para configurar o spinner, como `size`, `color` e `text`.
+ * @returns {React.ReactElement} O elemento do spinner de carregamento.
+ * @example
+ * ```tsx
+ * <LoadingSpinner size="lg" text="Carregando dados..." />
+ * ```
+ */
 const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ size = 'md', color = 'text-accent', text }) => {
-  // Mapeia os tamanhos para as classes correspondentes do Tailwind.
   const sizeClasses = {
     sm: 'w-6 h-6 border-2',
     md: 'w-10 h-10 border-4',
@@ -19,17 +48,14 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ size = 'md', color = 't
 
   return (
     <div className="flex flex-col items-center justify-center space-y-2">
-      {/* O elemento do spinner. A animação 'animate-spin' é do Tailwind. */}
-      {/* O truque de 'border-t-transparent' cria o efeito de "arco" girando. */}
       <div
         className={`animate-spin rounded-full ${sizeClasses[size]} ${color} border-t-transparent`}
         style={{ borderTopColor: 'transparent' }}
-        role="status" // Atributo de acessibilidade para indicar um estado de carregamento.
+        role="status"
         aria-live="polite"
       >
-         <span className="sr-only">Carregando...</span> {/* Texto para leitores de tela */}
+         <span className="sr-only">Carregando...</span>
       </div>
-      {/* Exibe o texto se ele for fornecido. */}
       {text && <p className={`text-sm ${color}`}>{text}</p>}
     </div>
   );

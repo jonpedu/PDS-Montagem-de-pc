@@ -1,17 +1,61 @@
-// Importa o React.
+/**
+ * @file Componente Button.
+ * @module components/core/Button
+ * @description Um componente de botão altamente reutilizável com variantes de estilo,
+ * tamanhos, estado de carregamento e suporte a ícones.
+ */
+
 import React from 'react';
 
-// Define as propriedades que o componente Button pode receber.
-// Estende as propriedades padrão de um botão HTML para maior flexibilidade.
+/**
+ * @interface ButtonProps
+ * @description Propriedades para o componente Button. Estende as propriedades padrão de um botão HTML.
+ */
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost'; // Estilos visuais do botão.
-  size?: 'sm' | 'md' | 'lg'; // Tamanhos do botão.
-  isLoading?: boolean; // Se true, exibe um spinner e desabilita o botão.
-  leftIcon?: React.ReactNode; // Ícone a ser exibido à esquerda do texto.
-  rightIcon?: React.ReactNode; // Ícone a ser exibido à direita do texto.
+  /**
+   * Estilos visuais do botão.
+   * @default 'primary'
+   */
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
+  /**
+   * Tamanho do botão.
+   * @default 'md'
+   */
+  size?: 'sm' | 'md' | 'lg';
+  /**
+   * Se `true`, exibe um spinner de carregamento e desabilita o botão.
+   * @default false
+   */
+  isLoading?: boolean;
+  /**
+   * Ícone React a ser exibido à esquerda do texto do botão.
+   */
+  leftIcon?: React.ReactNode;
+  /**
+   * Ícone React a ser exibido à direita do texto do botão.
+   */
+  rightIcon?: React.ReactNode;
 }
 
-// Componente de botão reutilizável com variantes de estilo e estado de carregamento.
+/**
+ * @component Button
+ * @description Um componente de botão versátil que encapsula estilos e comportamentos comuns,
+ * como estados de carregamento e variantes visuais.
+ * @param {ButtonProps} props - Propriedades para configurar o botão, incluindo `variant`, `size`, `isLoading`, ícones e outras propriedades HTML de botão.
+ * @returns {React.ReactElement} O elemento do botão.
+ * @example
+ * ```tsx
+ * <Button
+ *   variant="primary"
+ *   size="lg"
+ *   isLoading={isSubmitting}
+ *   onClick={handleSubmit}
+ *   leftIcon={<CheckIcon />}
+ * >
+ *   Confirmar
+ * </Button>
+ * ```
+ */
 const Button: React.FC<ButtonProps> = ({
   children,
   variant = 'primary',
@@ -23,10 +67,8 @@ const Button: React.FC<ButtonProps> = ({
   className = '',
   ...props
 }) => {
-  // Estilos base aplicados a todos os botões.
   const baseStyles = 'font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-primary transition-colors duration-150 flex items-center justify-center';
 
-  // Mapeamento de variantes para classes de estilo do Tailwind.
   const variantStyles = {
     primary: 'bg-accent text-primary hover:bg-opacity-80 focus:ring-accent',
     secondary: 'bg-secondary text-neutral hover:bg-opacity-80 focus:ring-neutral-dark',
@@ -34,14 +76,12 @@ const Button: React.FC<ButtonProps> = ({
     ghost: 'bg-transparent text-accent hover:bg-accent hover:text-primary focus:ring-accent',
   };
 
-  // Mapeamento de tamanhos para classes de estilo do Tailwind.
   const sizeStyles = {
     sm: 'px-3 py-1.5 text-sm',
     md: 'px-4 py-2 text-base',
     lg: 'px-6 py-3 text-lg',
   };
 
-  // Componente SVG do spinner de carregamento.
   const loadingSpinner = (
     <svg className="animate-spin h-5 w-5 text-currentColor" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -51,13 +91,10 @@ const Button: React.FC<ButtonProps> = ({
 
   return (
     <button
-      // Combina as classes de estilo: base, variante, tamanho e classes condicionais.
       className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${isLoading || disabled ? 'opacity-60 cursor-not-allowed' : ''} ${className}`}
-      // O botão é desabilitado se estiver carregando ou se a propriedade `disabled` for true.
       disabled={isLoading || disabled}
       {...props}
     >
-      {/* Renderização condicional: exibe o spinner ou o conteúdo do botão. */}
       {isLoading ? loadingSpinner : (
         <>
           {leftIcon && <span className="mr-2">{leftIcon}</span>}

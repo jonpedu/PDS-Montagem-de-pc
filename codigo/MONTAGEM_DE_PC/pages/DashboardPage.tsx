@@ -1,4 +1,10 @@
-// Importações de React, hooks, tipos e componentes.
+/**
+ * @file Página do Painel do Usuário (DashboardPage).
+ * @module pages/DashboardPage
+ * @description Esta é uma rota protegida que serve como o painel principal para usuários autenticados.
+ * Ela exibe uma saudação, ações rápidas e uma lista de todas as builds de PC que o usuário salvou.
+ */
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,7 +15,14 @@ import { supabase } from '../services/supabaseClient';
 import { getComponents } from '../services/componentService';
 import toast from 'react-hot-toast';
 
-// Componente para exibir um card de uma build salva.
+/**
+ * @component SavedBuildCard
+ * @description Um card de UI que exibe um resumo de uma build salva e fornece
+ * ações como "Ver/Editar" e "Excluir".
+ * @param {{ build: Build; onDelete: (buildId: string) => void }} props - As propriedades do componente.
+ * @private
+ * @returns {React.ReactElement} Um card representando uma build salva.
+ */
 const SavedBuildCard: React.FC<{ build: Build; onDelete: (buildId: string) => void }> = ({ build, onDelete }) => {
   return (
     <div className="bg-primary p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
@@ -20,7 +33,6 @@ const SavedBuildCard: React.FC<{ build: Build; onDelete: (buildId: string) => vo
         <p className="text-lg font-medium text-neutral mb-4">Total: R$ {build.orcamento.toFixed(2)}</p>
       </div>
       <div className="flex space-x-2 mt-auto">
-        {/* Link para visualizar/editar a build na página de montagem. */}
         <Link to={`/build/${build.id}`}> 
           <Button size="sm" variant="ghost">Ver/Editar</Button>
         </Link>
@@ -30,19 +42,28 @@ const SavedBuildCard: React.FC<{ build: Build; onDelete: (buildId: string) => vo
   );
 };
 
-// Componente da página do painel do usuário (Dashboard).
+/**
+ * @component DashboardPage
+ * @description A página de painel do usuário. Busca e exibe as builds salvas
+ * do usuário a partir do Supabase e permite que ele as gerencie (visualize, edite ou exclua).
+ * Esta é uma rota protegida e só é acessível para usuários autenticados.
+ * @returns {React.ReactElement} A página do painel do usuário.
+ */
 const DashboardPage: React.FC = () => {
   const { currentUser } = useAuth();
   const [savedBuilds, setSavedBuilds] = useState<Build[]>([]);
   const [isLoadingBuilds, setIsLoadingBuilds] = useState(true);
 
-  // Função para buscar as builds salvas do usuário no Supabase.
+  /**
+   * Busca as builds salvas do usuário logado no Supabase.
+   * Realiza um join com a tabela de componentes para obter os detalhes completos de cada peça.
+   * @private
+   */
   const fetchBuilds = useCallback(async () => {
     if (!currentUser) return;
 
     setIsLoadingBuilds(true);
     
-    // Carrega todos os componentes para poder mapear os IDs para os detalhes completos.
     const allComponents = await getComponents();
     if (allComponents.length === 0) {
       toast.error("Não foi possível carregar os dados dos componentes.");
@@ -51,22 +72,15 @@ const DashboardPage: React.FC = () => {
     }
     const componentMap = new Map(allComponents.map(c => [c.id, c]));
 
-    // Busca as builds do usuário logado, incluindo os IDs dos componentes associados.
     const { data, error } = await supabase
       .from('builds')
-      .select(`
-        *,
-        build_components(
-          component_id
-        )
-      `)
+      .select(`*, build_components(component_id)`)
       .eq('user_id', currentUser.id)
       .order('data_criacao', { ascending: false });
 
     if (error) {
       toast.error(`Não foi possível carregar suas builds: ${error.message}`);
     } else if (data) {
-       // Formata os dados recebidos para o tipo 'Build' da aplicação.
        const formattedBuilds: Build[] = data.map(build => {
         const components = (build.build_components as any[]).map(bc => componentMap.get(String(bc.component_id))).filter(Boolean) as Componente[];
         
@@ -92,12 +106,17 @@ const DashboardPage: React.FC = () => {
     setIsLoadingBuilds(false);
   }, [currentUser]);
 
-  // Efeito que chama a função de busca de builds quando o componente é montado ou o usuário muda.
   useEffect(() => {
     fetchBuilds();
   }, [fetchBuilds]);
 
-  // Função para deletar uma build.
+  /**
+   * Deleta uma build do banco de dados após a confirmação do usuário.
+   * Utiliza uma chamada RPC para garantir que a exclusão em cascata seja tratada corretamente
+   * pelas políticas de segurança do Supabase.
+   * @param {string} buildId - O ID da build a ser excluída.
+   * @private
+   */
   const handleDeleteBuild = async (buildId: string) => {
     if (!currentUser) return;
     if (!window.confirm("Tem certeza que deseja excluir esta build? Esta ação não pode ser desfeita.")) {
@@ -106,26 +125,20 @@ const DashboardPage: React.FC = () => {
     
     const toastId = toast.loading('Excluindo build...');
     try {
-      // Chama a função RPC 'delete_build' que lida com a exclusão em cascata de forma segura.
       const { error } = await supabase.rpc('delete_build', { p_build_id: buildId });
   
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
   
-      // Se a exclusão for bem-sucedida, atualize o estado da UI.
       setSavedBuilds(prevBuilds => prevBuilds.filter(b => b.id !== buildId));
       toast.success("Build excluída com sucesso!", { id: toastId });
       
     } catch (error: any) {
-      // Se a exclusão falhar, o erro será capturado aqui.
       toast.error(`Falha ao excluir a build: ${error.message}`, { id: toastId });
       console.error("Erro ao excluir build:", error);
     }
   };
 
 
-  // Se não houver usuário logado, exibe uma mensagem. (Embora a rota esteja protegida).
   if (!currentUser) {
     return <div className="text-center p-8"><p>Por favor, faça login para ver seu painel.</p></div>;
   }
@@ -137,7 +150,6 @@ const DashboardPage: React.FC = () => {
         <p className="text-lg text-neutral-dark">Gerencie suas montagens e explore novas possibilidades.</p>
       </header>
 
-      {/* Seção de Ações Rápidas */}
       <section className="mb-10">
         <h2 className="text-2xl font-semibold text-neutral mb-6 pb-2 border-b border-neutral-dark/30">Ações Rápidas</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -159,7 +171,6 @@ const DashboardPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Seção de Builds Salvas */}
       <section>
         <h2 className="text-2xl font-semibold text-neutral mb-6 pb-2 border-b border-neutral-dark/30">Minhas Builds Salvas</h2>
         {isLoadingBuilds ? (
@@ -173,7 +184,6 @@ const DashboardPage: React.FC = () => {
             ))}
           </div>
         ) : (
-          // Mensagem exibida quando o usuário não tem nenhuma build salva.
           <div className="text-center py-8 bg-primary/50 rounded-lg">
             <p className="text-xl text-neutral-dark">Você ainda não tem nenhuma build salva.</p>
             <Link to="/build" state={{ newBuild: true }}>

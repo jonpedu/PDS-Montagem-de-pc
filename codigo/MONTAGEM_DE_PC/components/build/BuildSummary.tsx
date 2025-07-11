@@ -1,25 +1,46 @@
-// Importações necessárias do React e tipos locais.
+/**
+ * @file Componente BuildSummary.
+ * @module components/build/BuildSummary
+ * @description Este componente é responsável por exibir o resumo de uma build de PC,
+ * incluindo a lista de componentes, o preço total, as notas da IA e as opções
+ * para salvar ou exportar a build.
+ */
+
 import React from 'react';
-import { Build, Componente, PreferenciaUsuarioInput } from '../../types'; // Tipos atualizados
+import { Build, Componente, PreferenciaUsuarioInput } from '../../types';
 import Button from '../core/Button';
-import Icon from '../core/Icon'; // Importa o novo componente de Ícone.
+import Icon from '../core/Icon';
 import LoadingSpinner from '../core/LoadingSpinner';
 
-// Define as propriedades que o componente BuildSummary pode receber.
+/**
+ * @interface BuildSummaryProps
+ * @description Propriedades para o componente BuildSummary.
+ */
 interface BuildSummaryProps {
-  build: Build | null; // O objeto da build a ser exibido.
-  isLoading?: boolean; // Indica se a build está sendo gerada.
-  isSaving?: boolean; // Indica se a build está sendo salva no momento.
-  onSaveBuild?: (build: Build) => void; // Callback para salvar a build.
-  onExportBuild?: (build: Build) => void; // Callback para exportar a build.
-  aiRecommendationNotes?: string; // Notas adicionais da IA.
+  /** O objeto da build a ser exibido. Pode ser nulo se nenhuma build foi gerada ainda. */
+  build: Build | null;
+  /** `true` se a build está sendo gerada, para exibir um estado de carregamento. */
+  isLoading?: boolean;
+  /** `true` se a build está sendo salva no momento. */
+  isSaving?: boolean;
+  /** Callback acionada quando o usuário clica em "Salvar Build". */
+  onSaveBuild?: (build: Build) => void;
+  /** Callback acionada quando o usuário clica em "Exportar PDF". */
+  onExportBuild?: (build: Build) => void;
+  /** Notas e justificativas da IA para a build atual. */
+  aiRecommendationNotes?: string;
 }
 
-// Componente para exibir um único item da lista de componentes.
+/**
+ * @component ComponentItem
+ * @description Um subcomponente que renderiza um único item na lista de componentes da build.
+ * @param {{ component: Componente }} props - As propriedades do componente.
+ * @returns {React.ReactElement} O elemento de lista para um componente.
+ * @private
+ */
 const ComponentItem: React.FC<{ component: Componente }> = ({ component }) => (
     <li className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-4 px-3 bg-primary rounded-lg hover:bg-primary/80 transition-colors duration-150">
       <div className="flex items-center mb-2 sm:mb-0 flex-1 min-w-0 mr-4">
-        {/* O componente Icon exibe um ícone SVG com base na categoria do componente. */}
         <Icon category={component.Categoria} className="w-10 h-10 text-accent mr-3 flex-shrink-0" />
         <div>
           <h4 className="font-semibold text-accent text-sm md:text-base" title={component.Produto}>{component.Produto}</h4>
@@ -28,7 +49,6 @@ const ComponentItem: React.FC<{ component: Componente }> = ({ component }) => (
       </div>
       <div className="flex items-center gap-x-4 self-end sm:self-center mt-2 sm:mt-0 flex-shrink-0">
         <p className="font-medium text-neutral text-sm sm:text-base whitespace-nowrap">R$ {component.Preco.toFixed(2)}</p>
-        {/* Exibe o botão "Ver Oferta" apenas se houver um link de compra. */}
         {component.LinkCompra && (
           <a href={component.LinkCompra} target="_blank" rel="noopener noreferrer" aria-label={`Ver oferta para ${component.Produto}`}>
             <Button variant="ghost" size="sm" className="whitespace-nowrap !py-1 !px-2 text-xs">
@@ -40,9 +60,14 @@ const ComponentItem: React.FC<{ component: Componente }> = ({ component }) => (
     </li>
   );
 
-// Componente principal que exibe o resumo da build gerada.
+/**
+ * @component BuildSummary
+ * @description Exibe um resumo detalhado da build de PC gerada pela IA ou carregada pelo usuário.
+ * Mostra a lista de componentes, preço total, notas da IA e botões de ação.
+ * @param {BuildSummaryProps} props - Propriedades para exibir a build, como o objeto `build`, estados de carregamento e callbacks de ação.
+ * @returns {React.ReactElement} A interface de resumo da build.
+ */
 const BuildSummary: React.FC<BuildSummaryProps> = ({ build, isLoading, isSaving, onSaveBuild, onExportBuild, aiRecommendationNotes }) => {
-  // Estado de carregamento ou quando nenhuma build está disponível.
   if (isLoading || !build || build.componentes.length === 0) {
     return (
       <div className="bg-secondary p-6 rounded-lg shadow-xl text-center h-full flex flex-col justify-center">

@@ -1,3 +1,12 @@
+/**
+ * @file Componente ChatbotAnamnesis.
+ * @module components/build/ChatbotAnamnesis
+ * @description Este componente implementa a interface de chat interativa onde o usuário
+ * conversa com a IA para definir os requisitos de sua build de PC. Ele gerencia o
+ * fluxo da conversa, as chamadas para a API Gemini e as interações de UI, como pedir
+ * permissão de localização.
+ */
+
 // Importações de React, tipos, serviços e componentes de UI.
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PreferenciaUsuarioInput, ChatMessage, Build, Componente, Ambiente, PerfilPCDetalhado } from '../../types';
@@ -7,19 +16,36 @@ import { getCityWeather } from '../../services/weatherService';
 import Button from '../core/Button';
 import LoadingSpinner from '../core/LoadingSpinner';
 
-// Define as propriedades do componente.
+/**
+ * @interface ChatbotAnamnesisProps
+ * @description Propriedades para o componente ChatbotAnamnesis.
+ */
 interface ChatbotAnamnesisProps {
+  /**
+   * Callback acionada a cada atualização da IA com uma nova build e as preferências atualizadas.
+   * @param build - O objeto da build atualizado.
+   * @param finalPreferences - O objeto de preferências do usuário atualizado.
+   */
   onBuildUpdate: (build: Build, finalPreferences: PreferenciaUsuarioInput) => void;
+  /**
+   * A lista de todos os componentes de hardware disponíveis para a IA escolher.
+   */
   availableComponents: Componente[] | null;
+  /**
+   * Dados de anamnese iniciais, caso o usuário esteja continuando uma build.
+   */
   initialAnamnesisData?: PreferenciaUsuarioInput;
 }
 
-// Mensagem inicial do chatbot.
-const INITIAL_AI_MESSAGE = "Para começarmos, qual é a sua faixa de orçamento em Reais (BRL)? (Ex: Econômico [até R$4000], Médio [R$4000-R$8000], ou um valor específico)";
-
-// Componente do Chatbot que realiza a anamnese (coleta de requisitos) com o usuário.
+/**
+ * @component ChatbotAnamnesis
+ * @description O coração da interação com o usuário. Este componente gerencia
+ * o estado do chat, envia as entradas do usuário para o `geminiService`, processa as
+ * respostas da IA e atualiza a build em tempo real através do callback `onBuildUpdate`.
+ * @param {ChatbotAnamnesisProps} props - Propriedades para inicializar o chatbot, incluindo `onBuildUpdate`, `availableComponents`, e dados iniciais.
+ * @returns {React.ReactElement} A interface de chat interativa.
+ */
 const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onBuildUpdate, availableComponents, initialAnamnesisData }) => {
-  // Estados do componente
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [userInput, setUserInput] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -38,10 +64,22 @@ const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onBuildUpdate, avai
   const scrollToBottom = () => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   useEffect(scrollToBottom, [messages]);
   
+  /**
+   * Adiciona uma nova mensagem à lista de mensagens do chat.
+   * @param sender - Quem enviou a mensagem ('user', 'ai', 'system').
+   * @param text - O conteúdo da mensagem.
+   * @private
+   */
   const addMessage = useCallback((sender: 'user' | 'ai' | 'system', text: string) => {
     setMessages(prev => [...prev, { id: Date.now().toString() + Math.random(), sender, text, timestamp: Date.now() }]);
   }, []);
 
+  /**
+   * Função central que chama o serviço da IA para obter a próxima resposta e a build atualizada.
+   * @param input - A entrada a ser enviada para a IA (geralmente a mensagem do usuário).
+   * @param currentData - O estado atual das preferências do usuário.
+   * @private
+   */
   const callLiveBuilder = useCallback(async (input: string, currentData: PreferenciaUsuarioInput) => {
     if (!availableComponents) {
         addMessage('system', 'Erro: A lista de componentes não está disponível.');
@@ -63,7 +101,6 @@ const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onBuildUpdate, avai
               .map(id => componentMap.get(id))
               .filter((c): c is Componente => Boolean(c));
           
-          // Defensivamente calcula o preço total se a IA não o fornecer.
           const totalPrice = typeof response.estimatedTotalPrice === 'number'
             ? response.estimatedTotalPrice
             : recommendedComponents.reduce((sum, component) => sum + (component.Preco || 0), 0);
@@ -91,6 +128,7 @@ const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onBuildUpdate, avai
   }, [addMessage, availableComponents, onBuildUpdate, locationProcessed]);
 
 
+  // Efeito para iniciar a conversa quando o componente é montado.
   useEffect(() => {
     if (initialMessagesSent.current) return;
     if (messages.length === 0 && (!initialAnamnesisData || Object.keys(initialAnamnesisData).length <= 2)) {
@@ -103,6 +141,10 @@ const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onBuildUpdate, avai
     }
   }, [addMessage, initialAnamnesisData, messages.length, callLiveBuilder, preferencias]);
 
+  /**
+   * Manipula o envio do formulário de mensagem do usuário.
+   * @private
+   */
   const handleSendMessage = async (e?: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
     if (!userInput.trim() || isLoading || awaitingLocationPermission) return;
@@ -113,12 +155,17 @@ const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onBuildUpdate, avai
     await callLiveBuilder(userMsgText, preferencias);
   };
   
+  // Efeito para focar no campo de input quando não há carregamento ou espera.
   useEffect(() => {
     if (!isLoading && !awaitingLocationPermission) {
         inputRef.current?.focus();
     }
   }, [isLoading, awaitingLocationPermission]);
 
+  /**
+   * Lida com a permissão de geolocalização automática pelo usuário.
+   * @private
+   */
   const handleAutoLocation = async () => {
     setAwaitingLocationPermission(false);
     setLocationProcessed(true);
@@ -165,7 +212,10 @@ const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onBuildUpdate, avai
     }
   };
 
-
+  /**
+   * Lida com a recusa do usuário em fornecer a localização automaticamente.
+   * @private
+   */
   const handleManualLocationPrompt = () => {
     setAwaitingLocationPermission(false);
     setLocationProcessed(true);
@@ -178,7 +228,6 @@ const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onBuildUpdate, avai
   return (
     <div className="bg-secondary p-4 sm:p-6 rounded-lg shadow-xl h-full flex flex-col">
       <h2 className="text-2xl font-semibold text-accent mb-4 text-center">Converse Comigo para Montar seu PC</h2>
-      {/* Área do chat */}
       <div className="flex-grow h-96 overflow-y-auto p-4 border border-neutral-dark rounded-md mb-4 bg-primary space-y-3">
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>

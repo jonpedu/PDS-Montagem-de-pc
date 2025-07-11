@@ -1,3 +1,12 @@
+/**
+ * @file Serviço de Interação com a API Google Gemini.
+ * @module services/geminiService
+ * @description
+ * Este módulo encapsula toda a lógica de comunicação com a API Google Gemini.
+ * Ele é responsável por construir prompts, enviar requisições para o modelo de IA,
+ * e processar as respostas para a montagem de PCs em tempo real.
+ */
+
 // Importa os tipos e classes necessários do SDK do Google GenAI e dos tipos locais.
 import { GoogleGenAI, GenerateContentResponse, Part, Content } from "@google/genai";
 import { PreferenciaUsuarioInput, ChatMessage, Componente, AIRecommendation, Ambiente, PerfilPCDetalhado, Build } from '../types';
@@ -14,13 +23,22 @@ if (!API_KEY) {
 const ai = new GoogleGenAI({ apiKey: API_KEY || "NO_KEY_PROVIDED" });
 const TEXT_MODEL_NAME = 'gemini-2.5-flash';
 
-// Interface que define a estrutura JSON esperada da resposta do chatbot Gemini.
+/**
+ * @interface GeminiLiveBuildResponse
+ * @description Define a estrutura JSON esperada da resposta do chatbot Gemini durante a montagem ao vivo.
+ */
 interface GeminiLiveBuildResponse {
+  /** Ação que a UI deve tomar, como pedir permissão de localização. */
   actionRequired?: 'request_location_permission' | 'none';
+  /** A resposta de texto da IA a ser exibida para o usuário. */
   aiResponseText: string;
+  /** O objeto de preferências do usuário, atualizado pela IA com as novas informações. */
   updatedPreferencias: PreferenciaUsuarioInput;
+  /** Um array de IDs dos componentes recomendados que formam a build atual. */
   recommendedComponentIds: string[];
+  /** Justificativa geral para a build, incluindo uma seção de "Avisos de Compatibilidade". */
   justification: string;
+  /** O preço total estimado da build recomendada. */
   estimatedTotalPrice: number;
 }
 
@@ -28,8 +46,10 @@ interface GeminiLiveBuildResponse {
 /**
  * Analisa a resposta de texto do Gemini para extrair um bloco de código JSON.
  * Lida com formatação markdown (```json ... ```) e texto adicional antes/depois do JSON.
- * @param responseText A resposta de texto bruta da API.
- * @returns Um objeto do tipo genérico T ou nulo se a análise falhar.
+ * @template T - O tipo de objeto esperado após a análise do JSON.
+ * @param {string} responseText - A resposta de texto bruta da API.
+ * @returns {T | null} Um objeto do tipo genérico T ou nulo se a análise falhar.
+ * @private
  */
 const parseJsonFromGeminiResponse = <T,>(responseText: string): T | null => {
   let jsonStr = responseText.trim();
@@ -64,9 +84,10 @@ const parseJsonFromGeminiResponse = <T,>(responseText: string): T | null => {
 /**
  * Pré-filtra a lista de componentes antes de enviá-la para a IA.
  * Isso reduz o tamanho do prompt, economiza tokens e melhora a relevância das recomendações.
- * @param components Lista completa de componentes disponíveis.
- * @param budget Orçamento fornecido pelo usuário.
- * @returns Uma lista de componentes filtrada e mais relevante.
+ * Se um orçamento é fornecido, seleciona os componentes mais próximos do preço alvo para cada categoria.
+ * @param {Componente[]} components - Lista completa de componentes disponíveis.
+ * @param {number} [budget] - Orçamento fornecido pelo usuário.
+ * @returns {Componente[]} Uma lista de componentes filtrada e mais relevante.
  */
 export const preFilterComponents = (components: Componente[], budget?: number): Componente[] => {
     const COMPONENT_COUNT_PER_CATEGORY = 20; // Aumentado para dar mais opções à IA
@@ -112,11 +133,13 @@ export const preFilterComponents = (components: Componente[], budget?: number): 
 
 /**
  * Obtém a próxima resposta do chatbot e uma build atualizada em tempo real.
- * @param history Histórico de mensagens da conversa.
- * @param userInput A última mensagem enviada pelo usuário.
- * @param currentPreferencias O estado atual das preferências coletadas.
- * @param availableComponents A lista de componentes disponíveis para seleção.
- * @returns Um objeto contendo a resposta da IA, preferências atualizadas e a build recomendada.
+ * Esta é a função central que impulsiona a conversa interativa.
+ * @param {ChatMessage[]} history - Histórico de mensagens da conversa.
+ * @param {string} userInput - A última mensagem enviada pelo usuário.
+ * @param {PreferenciaUsuarioInput} currentPreferencias - O estado atual das preferências coletadas.
+ * @param {Componente[]} availableComponents - A lista de componentes disponíveis para seleção.
+ * @returns {Promise<GeminiLiveBuildResponse | null>} Um objeto contendo a resposta da IA, preferências atualizadas e a build recomendada.
+ * @throws {Error} Lança um erro se houver um erro na comunicação com a API Gemini, incluindo erros de limite de taxa.
  */
 export const getLiveBuildResponse = async (
   history: ChatMessage[],

@@ -1,14 +1,31 @@
-// Importa React, o componente Navbar e o Toaster para notificações.
+/**
+ * @file Componente de Layout principal.
+ * @module components/layout/Layout
+ * @description Fornece a estrutura visual base para todas as páginas da aplicação,
+ * incluindo a barra de navegação, o rodapé e um contêiner para o conteúdo principal.
+ */
+
 import React, { ReactNode } from 'react';
 import Navbar from './Navbar';
 import { Toaster } from 'react-hot-toast';
 
-// Define as propriedades que o componente Layout pode receber.
+/**
+ * @interface LayoutProps
+ * @description Propriedades para o componente Layout.
+ */
 interface LayoutProps {
-  children: ReactNode; // O conteúdo da página a ser envolvido pelo layout.
+  /**
+   * O conteúdo da página a ser renderizado dentro do layout.
+   */
+  children: ReactNode;
 }
 
-// Componente do rodapé da página.
+/**
+ * @component Footer
+ * @description O componente do rodapé da aplicação.
+ * @private
+ * @returns {React.ReactElement} O elemento do rodapé.
+ */
 const Footer: React.FC = () => {
   return (
     <footer className="bg-secondary text-neutral-dark py-8 mt-auto">
@@ -21,12 +38,17 @@ const Footer: React.FC = () => {
 };
 
 
-// Componente principal de Layout que estrutura todas as páginas da aplicação.
+/**
+ * @component Layout
+ * @description Componente principal que envolve todas as páginas, fornecendo uma
+ * estrutura consistente com uma barra de navegação (`Navbar`) no topo, um rodapé (`Footer`)
+ * na parte inferior, e um sistema de notificações (`Toaster`).
+ * @param {LayoutProps} props - As propriedades do componente, que incluem os `children` a serem renderizados.
+ * @returns {React.ReactElement} O elemento do layout envolvendo o conteúdo da página.
+ */
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
-    // Usa flexbox para garantir que o rodapé fique no final da página, mesmo em páginas com pouco conteúdo.
     <div className="flex flex-col min-h-screen bg-primary text-neutral">
-      {/* Componente que renderiza as notificações toast. */}
       <Toaster 
         position="top-right"
         toastOptions={{
@@ -51,13 +73,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           },
         }}
       />
-      {/* A barra de navegação é sempre exibida no topo. */}
       <Navbar />
-      {/* O conteúdo principal da página (passado como `children`) é renderizado aqui. */}
       <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {children}
       </main>
-      {/* O rodapé é sempre exibido na parte inferior. */}
       <Footer />
     </div>
   );

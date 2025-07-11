@@ -1,21 +1,62 @@
-// Importa React e seus tipos.
+/**
+ * @file Componente Modal.
+ * @module components/core/Modal
+ * @description Um componente de modal genérico e acessível para exibir conteúdo
+ * sobreposto à página principal.
+ */
+
 import React, { ReactNode } from 'react';
 
-// Define as propriedades que o componente Modal pode receber.
+/**
+ * @interface ModalProps
+ * @description Propriedades para o componente Modal.
+ */
 interface ModalProps {
-  isOpen: boolean; // Controla se o modal está visível ou não.
-  onClose: () => void; // Função chamada quando o modal deve ser fechado.
-  title?: string; // Título opcional para o modal.
-  children: ReactNode; // Conteúdo a ser renderizado dentro do modal.
-  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full'; // Tamanho do modal.
+  /**
+   * Controla se o modal está visível ou não.
+   */
+  isOpen: boolean;
+  /**
+   * Função chamada quando o modal deve ser fechado (ex: clique no backdrop ou no botão de fechar).
+   */
+  onClose: () => void;
+  /**
+   * Título opcional para o modal, exibido no cabeçalho.
+   */
+  title?: string;
+  /**
+   * Conteúdo a ser renderizado dentro do modal.
+   */
+  children: ReactNode;
+  /**
+   * O tamanho do modal, controlando sua largura máxima.
+   * @default 'md'
+   */
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
 }
 
-// Componente de modal genérico e reutilizável.
+/**
+ * @component Modal
+ * @description Um componente reutilizável para criar caixas de diálogo (modais).
+ * Inclui um backdrop, tratamento de fechamento e suporte para tamanhos diferentes.
+ * @param {ModalProps} props - As propriedades para controlar o modal, como `isOpen`, `onClose`, `title` e `children`.
+ * @returns {React.ReactElement | null} O elemento do modal se `isOpen` for verdadeiro, senão nulo.
+ * @example
+ * ```tsx
+ * const [isModalOpen, setIsModalOpen] = useState(false);
+ *
+ * <Modal
+ *   isOpen={isModalOpen}
+ *   onClose={() => setIsModalOpen(false)}
+ *   title="Título do Modal"
+ * >
+ *   <p>Conteúdo do modal aqui.</p>
+ * </Modal>
+ * ```
+ */
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'md' }) => {
-  // Se o modal não estiver aberto, não renderiza nada.
   if (!isOpen) return null;
 
-  // Mapeia os tamanhos para as classes de largura máxima do Tailwind CSS.
   const sizeClasses = {
     sm: 'max-w-sm',
     md: 'max-w-md',
@@ -25,30 +66,24 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
   };
 
   return (
-    // O backdrop (fundo escuro) que cobre a tela inteira.
-    // O evento onClick no backdrop aciona a função onClose para fechar o modal.
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 transition-opacity duration-300 ease-in-out" 
       onClick={onClose}
-      role="dialog" // Acessibilidade: indica que é uma caixa de diálogo.
-      aria-modal="true" // Acessibilidade: indica que o conteúdo por trás do modal está inerte.
+      role="dialog"
+      aria-modal="true"
       aria-labelledby={title ? "modal-title" : undefined}
     >
-      {/* O contêiner principal do modal. */}
-      {/* O e.stopPropagation() impede que o clique dentro do modal se propague para o backdrop, evitando que ele feche acidentalmente. */}
       <div
         className={`bg-secondary p-6 rounded-lg shadow-xl transform transition-all duration-300 ease-in-out w-11/12 ${sizeClasses[size]} max-h-[90vh] overflow-y-auto`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Renderiza o cabeçalho do modal se um título for fornecido. */}
         {title && (
           <div className="flex justify-between items-center mb-4">
             <h2 id="modal-title" className="text-2xl font-semibold text-accent">{title}</h2>
-            {/* Botão para fechar o modal. */}
             <button
               onClick={onClose}
               className="text-neutral-dark hover:text-accent transition-colors"
-              aria-label="Close modal" // Acessibilidade: descreve a função do botão.
+              aria-label="Close modal"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -56,7 +91,6 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
             </button>
           </div>
         )}
-        {/* Renderiza o conteúdo (children) passado para o modal. */}
         <div>{children}</div>
       </div>
     </div>

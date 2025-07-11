@@ -1,4 +1,11 @@
-// Importações de React, hooks, tipos, componentes de UI e serviços.
+/**
+ * @file Página de Montagem (BuildPage).
+ * @module pages/BuildPage
+ * @description Este é o componente principal que orquestra todo o fluxo de montagem de um PC.
+ * Ele gerencia o estado da build, a interação com o chatbot, a exibição do resumo,
+ * o carregamento de builds salvas, e o fluxo de autenticação para salvar/exportar.
+ */
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PreferenciaUsuarioInput, Build, Componente, AIRecommendation, Ambiente, PerfilPCDetalhado } from '../types';
@@ -20,7 +27,15 @@ const SESSION_PROCEEDED_ANONYMOUSLY_KEY = 'proceededAnonymously';
 const SESSION_PENDING_PREFERENCIAS_KEY = 'pendingPreferencias';
 
 
-// Componente principal que orquestra todo o fluxo de montagem de PC.
+/**
+ * @component BuildPage
+ * @description Orquestrador central da funcionalidade de montagem de PC.
+ * Esta página combina o `ChatbotAnamnesis` e o `BuildSummary` para criar uma
+ * experiência de montagem em tempo real. Ela também gerencia o estado da build,
+ * carrega componentes, lida com builds salvas via URL, e gerencia o fluxo
+ * de autenticação para ações como salvar e exportar.
+ * @returns {React.ReactElement} A página de montagem de PC interativa.
+ */
 export const BuildPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -29,7 +44,7 @@ export const BuildPage: React.FC = () => {
   // Estados principais da página
   const [preferencias, setPreferencias] = useState<PreferenciaUsuarioInput | null>(null);
   const [currentBuild, setCurrentBuild] = useState<Build | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true); // Inicia como true para carregar componentes
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isViewingSavedBuild, setIsViewingSavedBuild] = useState<boolean>(false);
@@ -61,14 +76,21 @@ export const BuildPage: React.FC = () => {
     fetchComponents();
   }, []);
   
-  // Retorna a string de notas da IA (justificativa + avisos) para exibição.
+  /**
+   * Extrai a string de notas (justificativa e avisos) da build para exibição.
+   * @param build - O objeto da build.
+   * @returns A string de notas da IA ou undefined.
+   * @private
+   */
   const getNotesFromBuild = (build: Build | null): string | undefined => {
       if (!build) return undefined;
-      // A justificativa agora contém a visão geral e os avisos.
       return build.justificativa;
   };
 
-  // Função para resetar todo o estado da página, iniciando uma nova montagem.
+  /**
+   * Reseta todo o estado da página para iniciar uma nova montagem do zero.
+   * @private
+   */
   const resetBuildState = useCallback(() => {
     setPreferencias(null);
     setCurrentBuild(null);
@@ -78,11 +100,14 @@ export const BuildPage: React.FC = () => {
     sessionStorage.removeItem(SESSION_PENDING_BUILD_KEY);
     sessionStorage.removeItem(SESSION_PENDING_PREFERENCIAS_KEY);
     setPendingActionForAuth(null);
-    // Para forçar a recriação do componente Chatbot
     navigate('/build', { replace: true, state: { newBuild: true, timestamp: Date.now() } });
   }, [navigate]);
 
-  // Função que executa a lógica de salvar a build no Supabase.
+  /**
+   * Executa a lógica de salvar a build no Supabase, chamando uma função RPC.
+   * @param buildToSave - O objeto da build a ser salvo.
+   * @private
+   */
   const executeActualSaveBuild = useCallback(async (buildToSave: Build) => {
     if (!currentUser) {
       toast.error("Erro: Usuário não está logado para salvar.");
@@ -92,19 +117,23 @@ export const BuildPage: React.FC = () => {
     setIsSaving(true);
     setError(null);
     try {
+        // Sanitiza o objeto de requisitos para garantir que ele seja um JSON válido,
+        // removendo quaisquer propriedades não serializáveis que possam ter sido introduzidas.
+        const sanitizedRequisitos = buildToSave.requisitos
+            ? JSON.parse(JSON.stringify(buildToSave.requisitos))
+            : null;
+
         const { error: rpcError } = await supabase.rpc('upsert_build_with_components', {
             p_build_id: buildToSave.id,
             p_nome: buildToSave.nome,
             p_orcamento: buildToSave.orcamento,
             p_data_criacao: buildToSave.dataCriacao,
-            p_requisitos: buildToSave.requisitos || null,
+            p_requisitos: sanitizedRequisitos,
             p_avisos_compatibilidade: buildToSave.avisos_compatibilidade || [],
             p_component_ids: buildToSave.componentes.map(c => c.id)
         });
 
-        if (rpcError) {
-            throw rpcError;
-        }
+        if (rpcError) throw rpcError;
 
         toast.success(`Build "${buildToSave.nome}" salva com sucesso!`);
         setCurrentBuild(buildToSave);
@@ -121,16 +150,11 @@ export const BuildPage: React.FC = () => {
             const hint = error.hint ? `\nDica: ${error.hint}` : '';
             fullMessage = `Falha ao salvar a build: ${message}${details}${hint}`;
         } else {
-            // Fallback for non-standard errors
             let technicalDetails = '';
             try {
-                // Attempt to stringify for more info, avoiding useless empty objects.
                 const detailsString = JSON.stringify(error);
-                if (detailsString !== '{}') {
-                    technicalDetails = `Detalhes técnicos: ${detailsString}`;
-                }
+                if (detailsString !== '{}') technicalDetails = `Detalhes técnicos: ${detailsString}`;
             } catch (e) {
-                // If stringify fails, use a generic message.
                 technicalDetails = 'Não foi possível obter os detalhes do erro.';
             }
             fullMessage = `Ocorreu um erro inesperado ao salvar. ${technicalDetails}`.trim();
@@ -141,7 +165,11 @@ export const BuildPage: React.FC = () => {
     }
   }, [currentUser, navigate]);
 
-  // Função que executa a exportação da build para um arquivo PDF.
+  /**
+   * Gera e faz o download de um arquivo PDF com o resumo da build.
+   * @param buildToExport - O objeto da build a ser exportado.
+   * @private
+   */
   const executeActualExportBuild = useCallback((buildToExport: Build) => {
     const doc = new jsPDF();
     const notesForExport = getNotesFromBuild(buildToExport);
@@ -176,17 +204,13 @@ export const BuildPage: React.FC = () => {
         willDrawCell: (data) => {
             if (data.section === 'body' && data.column.index === 2) {
                 const component = buildToExport.componentes[data.row.index];
-                if (component && component.LinkCompra) {
-                    data.cell.styles.textColor = [65, 234, 212];
-                }
+                if (component && component.LinkCompra) data.cell.styles.textColor = [65, 234, 212];
             }
         },
         didDrawCell: (data) => {
             if (data.section === 'body' && data.column.index === 2) {
                 const component = buildToExport.componentes[data.row.index];
-                if (component && component.LinkCompra) {
-                    doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url: component.LinkCompra });
-                }
+                if (component && component.LinkCompra) doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url: component.LinkCompra });
             }
         }
     });
@@ -194,7 +218,7 @@ export const BuildPage: React.FC = () => {
     doc.save(`${buildToExport.nome.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`);
   }, []); 
 
-  // Efeito para lidar com a navegação e o carregamento de builds salvas.
+  // Efeito para lidar com a navegação e o carregamento de builds salvas a partir da URL.
   useEffect(() => {
     const pathParts = location.pathname.split('/');
     const buildId = pathParts.length > 2 && pathParts[1] === 'build' ? pathParts[2] : null;
@@ -247,7 +271,7 @@ export const BuildPage: React.FC = () => {
     }
   }, [location.pathname, location.state, currentBuild?.id, isViewingSavedBuild, resetBuildState, navigate, availableComponents, pageInitialized]);
 
-  // Efeito para gerenciar a lógica de autenticação pós-ação.
+  // Efeito para gerenciar a lógica de autenticação pós-ação (ex: salvar build após login).
   useEffect(() => {
     if (!currentUser && !location.pathname.includes('/build/') && !hasProceededAnonymously.current && !currentBuild && !isLoading && availableComponents) {
       setIsAuthInfoModalOpen(true);
@@ -287,7 +311,12 @@ export const BuildPage: React.FC = () => {
     sessionStorage.setItem(SESSION_PROCEEDED_ANONYMOUSLY_KEY, 'true');
   };
   
-  // Callback para o chatbot atualizar a build em tempo real.
+  /**
+   * Callback passada para o ChatbotAnamnesis para receber atualizações da build em tempo real.
+   * @param build - O objeto da build atualizado pela IA.
+   * @param finalPreferences - As preferências do usuário atualizadas.
+   * @private
+   */
   const handleBuildUpdate = useCallback((build: Build, finalPreferences: PreferenciaUsuarioInput) => {
      const justificationText = build.justificativa || '';
      const warningsRegex = /Avisos de Compatibilidade:([\s\S]*)/i;
@@ -304,6 +333,13 @@ export const BuildPage: React.FC = () => {
     setPreferencias(finalPreferences);
   }, []);
 
+  /**
+   * Dispara uma ação que requer autenticação ('save' ou 'export').
+   * Se o usuário não estiver logado, armazena a ação e a build no sessionStorage
+   * e abre o modal de login. Caso contrário, executa a ação diretamente.
+   * @param action - A ação a ser executada.
+   * @private
+   */
   const triggerAuthenticatedAction = (action: 'save' | 'export') => {
     if (!currentBuild || !preferencias) return;
     if (!currentUser) {
@@ -322,6 +358,11 @@ export const BuildPage: React.FC = () => {
 
   const aiNotesToDisplay = getNotesFromBuild(currentBuild);
 
+  /**
+   * Renderiza o conteúdo principal da página com base no estado atual (carregando, erro, visualizando, etc.).
+   * @returns O elemento React a ser renderizado.
+   * @private
+   */
   const renderContent = () => {
     if (isLoading && !availableComponents) {
        return <div className="text-center py-10"><LoadingSpinner size="lg" text={'Carregando componentes...'} /></div>;
@@ -348,12 +389,11 @@ export const BuildPage: React.FC = () => {
         );
     }
 
-    // Layout principal da página interativa
     return (
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
         <div className="lg:col-span-3">
             <ChatbotAnamnesis 
-              key={location.state?.timestamp || 'chat-init'} // Força recriação ao resetar
+              key={location.state?.timestamp || 'chat-init'} 
               onBuildUpdate={handleBuildUpdate}
               availableComponents={availableComponents}
               initialAnamnesisData={preferencias || { perfilPC: {} as PerfilPCDetalhado, ambiente: {} as Ambiente }}
@@ -363,7 +403,7 @@ export const BuildPage: React.FC = () => {
             <div className="sticky top-24">
               <BuildSummary 
                   build={currentBuild} 
-                  isLoading={false} // Loading é gerenciado pelo texto do chatbot
+                  isLoading={false} 
                   onSaveBuild={currentBuild ? triggerSaveBuild : undefined}
                   isSaving={isSaving}
                   onExportBuild={currentBuild ? triggerExportBuild : undefined}

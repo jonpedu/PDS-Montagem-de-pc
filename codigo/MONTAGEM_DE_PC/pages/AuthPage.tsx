@@ -1,36 +1,55 @@
-// Importações do React, hooks e componentes de UI.
+/**
+ * @file Página de Autenticação (AuthPage).
+ * @module pages/AuthPage
+ * @description Este componente renderiza um formulário unificado para login e registro de usuários.
+ * O modo de operação ('login' ou 'register') é determinado por uma propriedade.
+ */
+
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Button from '../components/core/Button';
 import LoadingSpinner from '../components/core/LoadingSpinner';
 
-// Define as propriedades que a página pode receber.
+/**
+ * @interface AuthPageProps
+ * @description Propriedades para o componente AuthPage.
+ */
 interface AuthPageProps {
-  mode: 'login' | 'register'; // Determina se a página está em modo de login ou registro.
+  /**
+   * Determina se a página está em modo de login ou registro.
+   */
+  mode: 'login' | 'register';
 }
 
-// Componente que renderiza a página de login ou de registro.
+/**
+ * @component AuthPage
+ * @description Um componente de página que fornece uma UI para os usuários se autenticarem
+ * (login) ou criarem uma nova conta (registro). Ele utiliza o `AuthContext` para
+ * executar as operações de autenticação e lida com o estado do formulário e feedback de erro.
+ * @param {AuthPageProps} props - As propriedades do componente, definindo o modo ('login' ou 'register').
+ * @returns {React.ReactElement} A página com o formulário de autenticação.
+ */
 const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
-  // Estados para os campos do formulário.
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // Obtém as funções e o estado de carregamento do contexto de autenticação.
   const { login, register, isLoading } = useAuth();
-  // O hook `useNavigate` não é mais necessário aqui para redirecionamento,
-  // pois o `AuthContext` agora gerencia a navegação após a autenticação.
   const location = useLocation(); 
 
-  // Função para lidar com o envio do formulário.
+  /**
+   * Manipula o envio do formulário de autenticação.
+   * Chama a função `login` ou `register` do `AuthContext` com base no modo da página.
+   * @param {React.FormEvent} e - O evento de envio do formulário.
+   * @private
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    // Lógica para o modo de registro.
     if (mode === 'register') {
       if (password !== confirmPassword) {
         setError('As senhas não coincidem.');
@@ -45,7 +64,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
       } catch (err: any) {
         setError(err.message || 'Falha ao registrar. Tente novamente.');
       }
-    } else { // Lógica para o modo de login.
+    } else {
       try {
         await login(email, password);
       } catch (err: any) {
@@ -63,10 +82,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
           </h2>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {/* Exibe mensagens de erro, se houver. */}
           {error && <p className="text-center text-sm text-red-400 bg-red-900/50 p-3 rounded-md">{error}</p>}
           
-          {/* Campo de nome, exibido apenas no modo de registro. */}
           {mode === 'register' && (
             <div className="rounded-md shadow-sm -space-y-px">
               <div>
@@ -86,7 +103,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
             </div>
           )}
 
-          {/* Campos de email e senha. */}
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="email-address" className="sr-only">Email</label>
@@ -118,7 +134,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
             </div>
           </div>
 
-          {/* Campo de confirmação de senha, exibido apenas no modo de registro. */}
           {mode === 'register' && (
              <div className="rounded-md shadow-sm -space-y-px">
                 <div>
@@ -140,14 +155,12 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
 
 
           <div>
-            {/* Botão de envio, que mostra um spinner quando `isLoading` é true. */}
             <Button type="submit" className="w-full" variant="primary" size="lg" isLoading={isLoading}>
               {isLoading ? <LoadingSpinner size="sm" /> : (mode === 'login' ? 'Entrar' : 'Registrar')}
             </Button>
           </div>
         </form>
 
-        {/* Links para alternar entre as páginas de login e registro. */}
         <div className="text-sm text-center">
           {mode === 'login' ? (
             <p className="text-neutral-dark">

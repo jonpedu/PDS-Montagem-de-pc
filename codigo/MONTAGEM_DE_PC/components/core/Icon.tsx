@@ -1,20 +1,51 @@
-// Importa o React.
+/**
+ * @file Componente Icon.
+ * @module components/core/Icon
+ * @description Um componente que renderiza um ícone SVG específico com base em uma
+ * string de categoria de componente de hardware.
+ */
+
 import React from 'react';
 
-// Define as propriedades que o componente Icon pode receber.
+/**
+ * @interface IconProps
+ * @description Propriedades para o componente Icon.
+ */
 interface IconProps {
-  category: string; // A categoria do componente (ex: "Processadores", "Placas de Vídeo").
-  className?: string; // Classes CSS adicionais para estilização.
+  /**
+   * A categoria do componente (ex: "Processadores", "Placas de Vídeo")
+   * que determina qual ícone será renderizado.
+   */
+  category: string;
+  /**
+   * Classes CSS adicionais para aplicar ao elemento SVG, permitindo
+   * estilização customizada (ex: tamanho, cor).
+   */
+  className?: string;
 }
 
-// Componente funcional que renderiza um ícone SVG com base na categoria do componente.
+/**
+ * @component Icon
+ * @description Um componente funcional que seleciona e renderiza um ícone SVG
+ * de uma coleção pré-definida, com base na `category` fornecida.
+ * Útil para representar visualmente diferentes tipos de componentes de hardware.
+ * @param {IconProps} props - Propriedades para configurar o ícone, incluindo `category` e `className`.
+ * @returns {React.ReactElement} O elemento SVG do ícone correspondente.
+ * @example
+ * ```tsx
+ * <Icon category="Processadores" className="w-8 h-8 text-blue-500" />
+ * ```
+ */
 const Icon: React.FC<IconProps> = ({ category, className = '' }) => {
-  // Função que retorna o SVG apropriado com base na string da categoria.
+  /**
+   * Retorna o elemento SVG apropriado com base na string da categoria.
+   * @returns {React.ReactElement} O ícone SVG.
+   * @private
+   */
   const getIcon = () => {
     switch (category) {
       case 'Processadores': // CPU
         return (
-          // O `className` passado como prop é aplicado ao SVG para permitir estilização externa.
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 21v-1.5M15.75 3v1.5M15.75 21v-1.5M12 4.5v-1.5m0 18v-1.5" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 4.5v15h15V4.5h-15z" />
@@ -57,8 +88,8 @@ const Icon: React.FC<IconProps> = ({ category, className = '' }) => {
             <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 14.25h1.5m3 0h1.5" />
           </svg>
         );
-      case 'Armazenamento': // Fallback para SSD/HD
-      case 'HD': // Hard Drive
+      case 'Armazenamento':
+      case 'HD':
         return (
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 17.25v-10.5l-3-3h-12l-3 3v10.5h18z" />
@@ -89,7 +120,7 @@ const Icon: React.FC<IconProps> = ({ category, className = '' }) => {
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 3.75v3m0 10.5v3M3.75 12h3m10.5 0h3M6.375 6.375l2.122 2.122m9.006 9.006l-2.122-2.122m-9.006 0l2.122-2.122m9.006-9.006l-2.122 2.122" />
           </svg>
         );
-      default: // Ícone de fallback para categorias não mapeadas.
+      default: // Ícone de fallback
         return (
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />

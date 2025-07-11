@@ -1,3 +1,12 @@
+/**
+ * @file Ponto de entrada principal da aplicação React.
+ * @module index
+ * @description
+ * Este arquivo é responsável por inicializar a aplicação React, encontrando o elemento
+ * 'root' no DOM e renderizando o componente principal `App` dentro dele.
+ * Ele utiliza o `ReactDOM.createRoot` para habilitar funcionalidades concorrentes do React.
+ */
+
 // Importa as bibliotecas React e ReactDOM para renderização da aplicação.
 import React from 'react';
 import ReactDOM from 'react-dom/client';
