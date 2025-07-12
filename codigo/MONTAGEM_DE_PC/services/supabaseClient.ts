@@ -20,13 +20,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
  * @description Define o tipo para campos JSON no banco de dados.
  * A definição foi simplificada para usar `any` para evitar erros de tipo recursivo excessivamente profundo.
  */
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: any }
-  | any[];
+export type Json = any;
 
 /**
  * @interface Database
@@ -47,7 +41,7 @@ export interface Database {
       profiles: {
         Row: { id: string; nome: string; email: string; updated_at: string; };
         Insert: { id: string; nome: string; email: string; };
-        Update: { nome?: string; };
+        Update: { nome?: string; email?: string; updated_at?: string; };
       },
       /** Tabela de builds salvas pelos usuários. */
       builds: {

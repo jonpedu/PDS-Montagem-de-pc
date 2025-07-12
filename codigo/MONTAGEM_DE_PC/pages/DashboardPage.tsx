@@ -12,7 +12,6 @@ import { Build, Componente, PreferenciaUsuarioInput } from '../types';
 import Button from '../components/core/Button';
 import LoadingSpinner from '../components/core/LoadingSpinner';
 import { supabase } from '../services/supabaseClient';
-import { getComponents } from '../services/componentService';
 import toast from 'react-hot-toast';
 
 /**
@@ -56,7 +55,8 @@ const DashboardPage: React.FC = () => {
 
   /**
    * Busca as builds salvas do usuário logado no Supabase.
-   * Realiza um join com a tabela de componentes para obter os detalhes completos de cada peça.
+   * Utiliza uma consulta relacional para buscar as builds e todos os detalhes
+   * de seus componentes de forma eficiente em uma única chamada.
    * @private
    */
   const fetchBuilds = useCallback(async () => {
@@ -64,29 +64,38 @@ const DashboardPage: React.FC = () => {
 
     setIsLoadingBuilds(true);
     
-    const allComponents = await getComponents();
-    if (allComponents.length === 0) {
-      toast.error("Não foi possível carregar os dados dos componentes.");
-      setIsLoadingBuilds(false);
-      return;
-    }
-    const componentMap = new Map(allComponents.map(c => [c.id, c]));
-
+    // Consulta otimizada: busca builds e aninha os dados completos dos componentes
+    // em vez de apenas seus IDs. Isso evita a necessidade de carregar todos os
+    // componentes na memória do cliente e fazer o join manualmente.
     const { data, error } = await supabase
       .from('builds')
-      .select(`*, build_components(component_id)`)
+      .select(`
+        id,
+        nome,
+        orcamento,
+        data_criacao,
+        requisitos,
+        avisos_compatibilidade,
+        user_id,
+        build_components (
+          components (*)
+        )
+      `)
       .eq('user_id', currentUser.id)
       .order('data_criacao', { ascending: false });
 
     if (error) {
       toast.error(`Não foi possível carregar suas builds: ${error.message}`);
     } else if (data) {
-       const formattedBuilds: Build[] = data.map(build => {
-        const components = (build.build_components as any[]).map(bc => componentMap.get(String(bc.component_id))).filter(Boolean) as Componente[];
+       const formattedBuilds: Build[] = data.map((build: any) => {
+        // Mapeia a estrutura aninhada retornada pelo Supabase para nosso tipo `Build`.
+        const components: Componente[] = build.build_components
+            .map((bc: any) => bc.components)
+            .filter(Boolean) as Componente[];
         
         const warnings = build.avisos_compatibilidade || [];
         const justificationFromDb = warnings.length > 0
-            ? `Avisos de Compatibilidade:\n${warnings.map(w => `- ${w}`).join('\n')}`
+            ? `Avisos de Compatibilidade:\n${warnings.map((w: string) => `- ${w}`).join('\n')}`
             : undefined;
 
         return {

@@ -52,6 +52,23 @@ CREATE TABLE IF NOT EXISTS public.build_components (
 COMMENT ON TABLE public.build_components IS 'Tabela de junção para associar componentes a uma build específica.';
 
 
+-- ### CONCESSÃO DE PERMISSÕES DE TABELA (GRANTS) ###
+-- Concede as permissões base nas tabelas para os roles `anon` e `authenticated`.
+-- As políticas RLS abaixo irão refinar o acesso em nível de linha.
+
+-- A tabela de componentes pode ser lida por qualquer pessoa (anônima ou logada).
+GRANT SELECT ON TABLE public.components TO anon, authenticated;
+
+-- Usuários logados podem ler e atualizar seus próprios perfis.
+GRANT SELECT, UPDATE ON TABLE public.profiles TO authenticated;
+
+-- Usuários logados podem realizar todas as operações em suas próprias builds.
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.builds TO authenticated;
+
+-- Usuários logados podem realizar todas as operações nos componentes de suas builds.
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.build_components TO authenticated;
+
+
 -- Função de gatilho (trigger function) para criar um perfil de usuário automaticamente após o registro.
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
@@ -89,7 +106,6 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
     v_current_user_id uuid := auth.uid();
-    v_comp_id text;
 BEGIN
     -- Etapa 1: Faz o "upsert" da build.
     -- Insere uma nova build ou atualiza uma existente com base no ID.
@@ -105,14 +121,11 @@ BEGIN
     -- A RLS garante que o usuário só pode deletar de builds que ele possui.
     DELETE FROM public.build_components WHERE build_id = p_build_id;
 
-    -- Etapa 3: Insere os novos componentes.
+    -- Etapa 3: Insere os novos componentes usando um bulk insert performático.
     -- A RLS garante que o usuário só pode inserir em builds que ele possui.
     IF p_component_ids IS NOT NULL AND array_length(p_component_ids, 1) > 0 THEN
-        FOREACH v_comp_id IN ARRAY p_component_ids
-        LOOP
-            INSERT INTO public.build_components (build_id, component_id)
-            VALUES (p_build_id, v_comp_id);
-        END LOOP;
+        INSERT INTO public.build_components (build_id, component_id)
+        SELECT p_build_id, unnest(p_component_ids);
     END IF;
 END;
 $$;
@@ -125,7 +138,7 @@ LANGUAGE plpgsql
 SECURITY DEFINER -- Executa com os privilégios do criador da função (superuser).
 AS $$
 BEGIN
-  -- IMPORTANTE: Dentro de uma função SECURITY DEFINER, devemos verificar manualmente a permissão.
+  -- IMPORTANTE: Dentro de uma função SECURITY DEFINER, devemos verificar manually a permissão.
   -- Esta verificação garante que um usuário só pode deletar as próprias builds.
   IF EXISTS (SELECT 1 FROM public.builds WHERE id = p_build_id AND user_id = auth.uid()) THEN
     -- Etapa 1: Excluir explicitamente da tabela de junção 'build_components'.
@@ -165,7 +178,7 @@ USING (auth.uid() = id); -- Permite a atualização (UPDATE) da própria linha.
 DROP POLICY IF EXISTS "Usuários autenticados podem criar builds." ON public.builds;
 CREATE POLICY "Usuários autenticados podem criar builds."
 ON public.builds FOR INSERT
-TO authenticated WITH CHECK (auth.uid() = user_id); -- Permite a inserção (INSERT) para qualquer usuário autenticado, mas verifica se o `user_id` da nova linha é o mesmo do usuário que a está inserindo.
+WITH CHECK (auth.uid() = user_id); -- Permite a inserção (INSERT) para qualquer usuário autenticado, mas verifica se o `user_id` da nova linha é o mesmo do usuário que a está inserindo.
 
 DROP POLICY IF EXISTS "Usuários podem ver as próprias builds." ON public.builds;
 CREATE POLICY "Usuários podem ver as próprias builds."
@@ -183,6 +196,10 @@ ON public.builds FOR DELETE
 USING (auth.uid() = user_id); -- Permite a exclusão das builds que pertencem ao usuário.
 
 -- 4. Políticas de Segurança para a tabela 'build_components'
+-- Esta política permite que um usuário realize qualquer operação (SELECT, INSERT, UPDATE, DELETE)
+-- na tabela 'build_components' SE, E SOMENTE SE, ele for o dono da build associada.
+-- A cláusula USING se aplica a SELECT, UPDATE, DELETE.
+-- A cláusula WITH CHECK se aplica a INSERT, UPDATE.
 DROP POLICY IF EXISTS "Usuários podem gerenciar componentes das próprias builds." ON public.build_components;
 CREATE POLICY "Usuários podem gerenciar componentes das próprias builds."
 ON public.build_components FOR ALL
@@ -199,12 +216,11 @@ WITH CHECK (
   )
 );
 
--- 5. Políticas de Segurança para a tabela 'components'
+-- 5. Política de Segurança para a tabela 'components'
 DROP POLICY IF EXISTS "Componentes são públicos para leitura." ON public.components;
 CREATE POLICY "Componentes são públicos para leitura."
 ON public.components FOR SELECT
-TO authenticated, anon -- Concede permissão de leitura explícita para usuários anônimos e autenticados.
-USING (true); -- A condição `true` significa que a política sempre se aplica.
+USING (true); -- A condição `true` significa que a política sempre se aplica a todos os roles que têm permissão de SELECT na tabela (concedido via GRANT).
 
 -- FIM DA CONFIGURAÇÃO DO SCHEMA.
 -- Os dados da tabela `public.components` devem ser populados separadamente,

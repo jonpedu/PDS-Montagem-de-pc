@@ -57,6 +57,7 @@ export const BuildPage: React.FC = () => {
   const hasProceededAnonymously = useRef<boolean>(sessionStorage.getItem(SESSION_PROCEEDED_ANONYMOUSLY_KEY) === 'true');
 
   // Efeito para carregar a lista de componentes disponíveis na montagem do componente.
+  // Isso é necessário para a IA ter a lista de peças para escolher.
   useEffect(() => {
     const fetchComponents = async () => {
         setIsLoading(true);
@@ -234,20 +235,21 @@ export const BuildPage: React.FC = () => {
       
         setIsLoading(true);
         const fetchSavedBuild = async () => {
-            const allComponents = await getComponents();
-            if(!allComponents?.length) {
-                setError("Não foi possível carregar os componentes para exibir a build salva.");
-                setIsLoading(false);
-                return;
-            }
-            
-            const { data, error: fetchError } = await supabase.from('builds').select('*, build_components(component_id)').eq('id', buildId).single();
+            // Otimização: Busca a build e seus componentes em uma única query relacional.
+            const { data, error: fetchError } = await supabase
+                .from('builds')
+                .select('*, build_components(components(*))')
+                .eq('id', buildId)
+                .single();
+
             if (fetchError) {
                 setError(`A build com o ID '${buildId}' não foi encontrada.`);
                 resetBuildState();
             } else if (data) {
-                const componentMap = new Map(allComponents.map(c => [c.id, c]));
-                const components = (data.build_components as any[]).map(bc => componentMap.get(String(bc.component_id))).filter(Boolean);
+                // Mapeia a resposta aninhada do Supabase para o nosso tipo `Build`.
+                const components: Componente[] = (data.build_components as any[])
+                    .map(bc => bc.components)
+                    .filter(Boolean) as Componente[];
                 
                 const warnings = data.avisos_compatibilidade || [];
                 const justificationFromDb = warnings.length > 0
@@ -259,7 +261,7 @@ export const BuildPage: React.FC = () => {
                     justificativa: justificationFromDb,
                     avisos_compatibilidade: warnings,
                     requisitos: data.requisitos as PreferenciaUsuarioInput || undefined,
-                    componentes: components as Componente[], userId: data.user_id,
+                    componentes: components, userId: data.user_id,
                 };
                 setCurrentBuild(formattedBuild);
                 setPreferencias(formattedBuild.requisitos || { perfilPC: {} as PerfilPCDetalhado, ambiente: {} as Ambiente });
@@ -267,9 +269,9 @@ export const BuildPage: React.FC = () => {
             }
             setIsLoading(false);
         };
-        if(availableComponents) fetchSavedBuild();
+        fetchSavedBuild();
     }
-  }, [location.pathname, location.state, currentBuild?.id, isViewingSavedBuild, resetBuildState, navigate, availableComponents, pageInitialized]);
+  }, [location.pathname, location.state, currentBuild?.id, isViewingSavedBuild, resetBuildState, navigate, pageInitialized]);
 
   // Efeito para gerenciar a lógica de autenticação pós-ação (ex: salvar build após login).
   useEffect(() => {
@@ -379,7 +381,7 @@ export const BuildPage: React.FC = () => {
     if (isViewingSavedBuild) {
         return (
              <>
-              <BuildSummary build={currentBuild} onSaveBuild={triggerSaveBuild} isSaving={isSaving} onExportBuild={triggerExportBuild} aiRecommendationNotes={aiNotesToDisplay} />
+              <BuildSummary build={currentBuild} onExportBuild={triggerExportBuild} aiRecommendationNotes={aiNotesToDisplay} />
               <div className="mt-6 text-center">
                 <Button onClick={resetBuildState} variant="secondary" size="lg">
                     Iniciar Nova Montagem com IA
