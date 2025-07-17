@@ -9,18 +9,12 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { Json } from '../types';
 
 // Constantes de conexão com o Supabase.
 const SUPABASE_URL = 'https://bddvepakaalgvatoimat.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkZHZlcGFrYWFsZ3ZhdG9pbWF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIxNzk4MDIsImV4cCI6MjA2Nzc1NTgwMn0.GWoHWGK4gUbgb3eHsm5nfhOpbXhjs-mCJwNsIfUCGG8';
 
-
-/**
- * @typedef {Json}
- * @description Define o tipo para campos JSON no banco de dados.
- * A definição foi simplificada para usar `any` para evitar erros de tipo recursivo excessivamente profundo.
- */
-export type Json = any;
 
 /**
  * @interface Database
@@ -41,7 +35,7 @@ export interface Database {
       profiles: {
         Row: { id: string; nome: string; email: string; updated_at: string; };
         Insert: { id: string; nome: string; email: string; };
-        Update: { nome?: string; email?: string; updated_at?: string; };
+        Update: { nome?: string; email?: string; };
       },
       /** Tabela de builds salvas pelos usuários. */
       builds: {

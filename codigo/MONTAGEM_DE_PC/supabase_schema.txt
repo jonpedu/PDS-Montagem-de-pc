@@ -52,23 +52,6 @@ CREATE TABLE IF NOT EXISTS public.build_components (
 COMMENT ON TABLE public.build_components IS 'Tabela de junção para associar componentes a uma build específica.';
 
 
--- ### CONCESSÃO DE PERMISSÕES DE TABELA (GRANTS) ###
--- Concede as permissões base nas tabelas para os roles `anon` e `authenticated`.
--- As políticas RLS abaixo irão refinar o acesso em nível de linha.
-
--- A tabela de componentes pode ser lida por qualquer pessoa (anônima ou logada).
-GRANT SELECT ON TABLE public.components TO anon, authenticated;
-
--- Usuários logados podem ler e atualizar seus próprios perfis.
-GRANT SELECT, UPDATE ON TABLE public.profiles TO authenticated;
-
--- Usuários logados podem realizar todas as operações em suas próprias builds.
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.builds TO authenticated;
-
--- Usuários logados podem realizar todas as operações nos componentes de suas builds.
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.build_components TO authenticated;
-
-
 -- Função de gatilho (trigger function) para criar um perfil de usuário automaticamente após o registro.
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
@@ -178,7 +161,7 @@ USING (auth.uid() = id); -- Permite a atualização (UPDATE) da própria linha.
 DROP POLICY IF EXISTS "Usuários autenticados podem criar builds." ON public.builds;
 CREATE POLICY "Usuários autenticados podem criar builds."
 ON public.builds FOR INSERT
-WITH CHECK (auth.uid() = user_id); -- Permite a inserção (INSERT) para qualquer usuário autenticado, mas verifica se o `user_id` da nova linha é o mesmo do usuário que a está inserindo.
+TO authenticated WITH CHECK (auth.uid() = user_id); -- Permite a inserção (INSERT) para qualquer usuário autenticado, mas verifica se o `user_id` da nova linha é o mesmo do usuário que a está inserindo.
 
 DROP POLICY IF EXISTS "Usuários podem ver as próprias builds." ON public.builds;
 CREATE POLICY "Usuários podem ver as próprias builds."
@@ -216,11 +199,12 @@ WITH CHECK (
   )
 );
 
--- 5. Política de Segurança para a tabela 'components'
+-- Habilitar RLS e criar políticas para a tabela 'components'
 DROP POLICY IF EXISTS "Componentes são públicos para leitura." ON public.components;
 CREATE POLICY "Componentes são públicos para leitura."
 ON public.components FOR SELECT
-USING (true); -- A condição `true` significa que a política sempre se aplica a todos os roles que têm permissão de SELECT na tabela (concedido via GRANT).
+TO authenticated, anon -- Concede permissão de leitura explícita para usuários anônimos e autenticados.
+USING (true); -- A condição `true` significa que a política sempre se aplica.
 
 -- FIM DA CONFIGURAÇÃO DO SCHEMA.
 -- Os dados da tabela `public.components` devem ser populados separadamente,

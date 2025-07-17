@@ -11,7 +11,7 @@
 import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
 import { User } from '../types';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { supabase, Database } from '../services/supabaseClient';
+import { supabase } from '../services/supabaseClient';
 import { Session, User as SupabaseUser, AuthChangeEvent } from '@supabase/supabase-js';
 import toast from 'react-hot-toast';
 
@@ -86,17 +86,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
    */
   const fetchUserProfile = useCallback(async (supabaseUser: SupabaseUser): Promise<User | null> => {
     for (let i = 0; i < 3; i++) {
-        const { data: profile, error } = await supabase
+        // To work around the "Type instantiation is excessively deep" error, we avoid
+        // direct destructuring. Instead, we assign the result to an `any` typed variable,
+        // which is a more robust way to halt TypeScript's problematic deep type inference.
+        const queryResponse: any = await supabase
             .from('profiles')
             .select('nome, email')
             .eq('id', supabaseUser.id)
             .single();
+        
+        const { data, error } = queryResponse;
 
         if (error && error.code !== 'PGRST116') { // 'PGRST116' é o erro para "nenhuma linha encontrada".
             console.error("Error fetching user profile:", error);
             return null;
         }
-        if (profile) {
+        if (data) {
+            const profile = data as { nome: string; email: string };
             return { id: supabaseUser.id, nome: profile.nome, email: profile.email };
         }
         if (i < 2) { // Se não for a última tentativa, espera um pouco antes de tentar novamente.
@@ -107,18 +113,39 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return null;
   }, []);
 
-  // Efeito principal que ouve as mudanças no estado de autenticação do Supabase.
+  // Efeito principal que gerencia o estado de autenticação de forma robusta.
   useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        // 1. Proativamente busca a sessão atual ao carregar.
+        // Isso é mais rápido e confiável do que apenas esperar pelo onAuthStateChange.
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error("Erro ao buscar a sessão inicial:", error);
+          // Mesmo com erro, consideramos o carregamento concluído.
+          return; 
+        }
+
+        setSession(initialSession);
+        if (initialSession?.user) {
+          const profile = await fetchUserProfile(initialSession.user);
+          setCurrentUser(profile);
+        } else {
+          setCurrentUser(null);
+        }
+      } catch (e) {
+        console.error("Erro inesperado na inicialização da autenticação:", e);
+      } finally {
+        // 3. Garante que o estado de carregamento seja finalizado.
+        setIsLoading(false);
+      }
+    };
+
     setIsLoading(true);
+    initializeAuth();
 
-    const authTimeout = setTimeout(() => {
-      console.warn("A verificação de autenticação expirou. Renderizando a aplicação...");
-      toast.error("Não foi possível conectar ao servidor de autenticação. Tente recarregar a página.", { duration: 8000 });
-      setIsLoading(false);
-    }, 8000); 
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
-      clearTimeout(authTimeout); 
+    // 2. Ouve por mudanças futuras (login, logout, etc.)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       if (session?.user) {
         const profile = await fetchUserProfile(session.user);
@@ -126,14 +153,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } else {
         setCurrentUser(null);
       }
-      setIsLoading(false);
+      // Não é mais necessário controlar o isLoading aqui, pois o estado inicial já foi resolvido.
     });
 
     return () => {
-      clearTimeout(authTimeout);
-      authListener.subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, [fetchUserProfile]);
+
 
   // Efeito para lidar com o redirecionamento após um login ou registro bem-sucedido.
   useEffect(() => {
@@ -209,10 +236,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     
     if (nome && nome !== currentUser.nome) {
-      const profileUpdate: Database['public']['Tables']['profiles']['Update'] = { nome };
+      // The `never` type error on `update` suggests a deep type inference failure.
+      // Simplifying the call by passing the update object directly helps avoid the issue.
       const { error: profileError } = await supabase
         .from('profiles')
-        .update(profileUpdate)
+        .update({ nome })
         .eq('id', currentUser.id);
       if (profileError) throw profileError;
       setCurrentUser(prev => prev ? { ...prev, nome } : null);

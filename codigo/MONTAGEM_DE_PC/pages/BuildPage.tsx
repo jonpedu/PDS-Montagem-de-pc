@@ -8,7 +8,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { PreferenciaUsuarioInput, Build, Componente, AIRecommendation, Ambiente, PerfilPCDetalhado } from '../types';
+import { PreferenciaUsuarioInput, Build, Componente, AIRecommendation, Ambiente, PerfilPCDetalhado, Json } from '../types';
 import ChatbotAnamnesis from '../components/build/ChatbotAnamnesis';
 import BuildSummary from '../components/build/BuildSummary';
 import LoadingSpinner from '../components/core/LoadingSpinner';
@@ -33,6 +33,7 @@ const SESSION_PENDING_PREFERENCIAS_KEY = 'pendingPreferencias';
  * Esta página combina o `ChatbotAnamnesis` e o `BuildSummary` para criar uma
  * experiência de montagem em tempo real. Ela também gerencia o estado da build,
  * carrega componentes, lida com builds salvas via URL, e gerencia o fluxo
+
  * de autenticação para ações como salvar e exportar.
  * @returns {React.ReactElement} A página de montagem de PC interativa.
  */
@@ -50,6 +51,7 @@ export const BuildPage: React.FC = () => {
   const [isViewingSavedBuild, setIsViewingSavedBuild] = useState<boolean>(false);
   const [availableComponents, setAvailableComponents] = useState<Componente[] | null>(null);
   const [pageInitialized, setPageInitialized] = useState<boolean>(false);
+  const [isBuildComplete, setIsBuildComplete] = useState<boolean>(false);
 
   // Estados para gerenciar o fluxo de autenticação para usuários anônimos.
   const [isAuthInfoModalOpen, setIsAuthInfoModalOpen] = useState<boolean>(false);
@@ -93,11 +95,12 @@ export const BuildPage: React.FC = () => {
    * @private
    */
   const resetBuildState = useCallback(() => {
-    setPreferencias(null);
     setCurrentBuild(null);
+    setPreferencias(null);
     setError(null);
     setIsViewingSavedBuild(false);
     setPageInitialized(false);
+    setIsBuildComplete(false);
     sessionStorage.removeItem(SESSION_PENDING_BUILD_KEY);
     sessionStorage.removeItem(SESSION_PENDING_PREFERENCIAS_KEY);
     setPendingActionForAuth(null);
@@ -118,11 +121,42 @@ export const BuildPage: React.FC = () => {
     setIsSaving(true);
     setError(null);
     try {
-        // Sanitiza o objeto de requisitos para garantir que ele seja um JSON válido,
-        // removendo quaisquer propriedades não serializáveis que possam ter sido introduzidas.
-        const sanitizedRequisitos = buildToSave.requisitos
-            ? JSON.parse(JSON.stringify(buildToSave.requisitos))
-            : null;
+        // Simplificação do processo de salvar:
+        // Para garantir que o salvamento seja rápido e confiável, mesmo após longas conversas com a IA,
+        // nós limpamos e compactamos o objeto de "requisitos" antes de enviá-lo.
+        // Isso remove dados desnecessários ou excessivamente grandes que podem causar lentidão ou falhas.
+        const sanitizedRequisitos = ((prefs: PreferenciaUsuarioInput | undefined): Json | null => {
+            if (!prefs) return null;
+
+            // Mantemos apenas as propriedades essenciais para recriar o contexto da build,
+            // descartando dados transitórios da conversa.
+            const cleanPrefs: Partial<PreferenciaUsuarioInput> = {
+                orcamento: prefs.orcamento,
+                orcamentoRange: prefs.orcamentoRange,
+                perfilPC: prefs.perfilPC || {},
+                ambiente: prefs.ambiente || {},
+                ownedComponents: prefs.ownedComponents,
+                buildExperience: prefs.buildExperience,
+                brandPreference: prefs.brandPreference,
+                aestheticsImportance: prefs.aestheticsImportance,
+                caseSize: prefs.caseSize,
+                noiseLevel: prefs.noiseLevel,
+                specificPorts: prefs.specificPorts,
+                // O campo de preferências gerais é truncado para evitar sobrecarga.
+                preferences: prefs.preferences ? String(prefs.preferences).substring(0, 2000) : undefined,
+            };
+            
+            // Removemos chaves com valores `undefined` para gerar um JSON final mais enxuto.
+            Object.keys(cleanPrefs).forEach(key => {
+                const k = key as keyof Partial<PreferenciaUsuarioInput>;
+                if (cleanPrefs[k] === undefined) {
+                    delete cleanPrefs[k];
+                }
+            });
+
+            // A conversão final para string e de volta para JSON garante um objeto 100% serializável.
+            return JSON.parse(JSON.stringify(cleanPrefs));
+        })(buildToSave.requisitos);
 
         const { error: rpcError } = await supabase.rpc('upsert_build_with_components', {
             p_build_id: buildToSave.id,
@@ -235,12 +269,14 @@ export const BuildPage: React.FC = () => {
       
         setIsLoading(true);
         const fetchSavedBuild = async () => {
-            // Otimização: Busca a build e seus componentes em uma única query relacional.
-            const { data, error: fetchError } = await supabase
+            // A consulta relacional complexa pode causar o erro "Type instantiation is excessively deep".
+            // Para contornar isso, tipamos a promessa da consulta como 'any' para evitar que o TypeScript
+            // tente inferir o tipo complexo, que é a fonte do erro.
+            const { data, error: fetchError } = await (supabase
                 .from('builds')
                 .select('*, build_components(components(*))')
                 .eq('id', buildId)
-                .single();
+                .single()) as any;
 
             if (fetchError) {
                 setError(`A build com o ID '${buildId}' não foi encontrada.`);
@@ -266,6 +302,7 @@ export const BuildPage: React.FC = () => {
                 setCurrentBuild(formattedBuild);
                 setPreferencias(formattedBuild.requisitos || { perfilPC: {} as PerfilPCDetalhado, ambiente: {} as Ambiente });
                 setIsViewingSavedBuild(true);
+                setIsBuildComplete(true);
             }
             setIsLoading(false);
         };
@@ -314,24 +351,37 @@ export const BuildPage: React.FC = () => {
   };
   
   /**
-   * Callback passada para o ChatbotAnamnesis para receber atualizações da build em tempo real.
-   * @param build - O objeto da build atualizado pela IA.
+   * Callback para receber atualizações da build.
+   * @param buildUpdate - O objeto parcial da build com dados atualizados pela IA.
    * @param finalPreferences - As preferências do usuário atualizadas.
    * @private
    */
-  const handleBuildUpdate = useCallback((build: Build, finalPreferences: PreferenciaUsuarioInput) => {
-     const justificationText = build.justificativa || '';
-     const warningsRegex = /Avisos de Compatibilidade:([\s\S]*)/i;
-     const warningsMatch = justificationText.match(warningsRegex);
-     const warningsText = warningsMatch ? warningsMatch[1].trim() : '';
-     const warnings = warningsText ? warningsText.split('\n').map(w => w.replace(/^- /, '').trim()).filter(Boolean) : [];
+  const handleBuildUpdate = useCallback((buildUpdate: Partial<Build>, finalPreferences: PreferenciaUsuarioInput) => {
+    setCurrentBuild(prevBuild => {
+        const baseBuild = prevBuild || {
+            id: crypto.randomUUID(),
+            dataCriacao: new Date().toISOString(),
+            nome: 'Nova Build',
+            componentes: [],
+            orcamento: 0,
+        };
 
-    const buildWithWarnings: Build = {
-        ...build,
-        avisos_compatibilidade: warnings,
-    };
+        const justificationText = buildUpdate.justificativa || baseBuild.justificativa || '';
+        const warningsRegex = /Avisos de Compatibilidade:([\s\S]*)/i;
+        const warningsMatch = justificationText.match(warningsRegex);
+        const warningsText = warningsMatch ? warningsMatch[1].trim() : '';
+        const warnings = warningsText ? warningsText.split('\n').map(w => w.replace(/^- /, '').trim()).filter(Boolean) : [];
 
-    setCurrentBuild(buildWithWarnings);
+        const updatedBuild: Build = {
+            ...baseBuild,
+            ...buildUpdate,
+            requisitos: finalPreferences,
+            avisos_compatibilidade: warnings,
+        };
+        
+        setIsBuildComplete(!!updatedBuild.componentes && updatedBuild.componentes.length > 0);
+        return updatedBuild;
+    });
     setPreferencias(finalPreferences);
   }, []);
 
@@ -406,9 +456,9 @@ export const BuildPage: React.FC = () => {
               <BuildSummary 
                   build={currentBuild} 
                   isLoading={false} 
-                  onSaveBuild={currentBuild ? triggerSaveBuild : undefined}
+                  onSaveBuild={isBuildComplete && currentBuild ? triggerSaveBuild : undefined}
                   isSaving={isSaving}
-                  onExportBuild={currentBuild ? triggerExportBuild : undefined}
+                  onExportBuild={isBuildComplete && currentBuild ? triggerExportBuild : undefined}
                   aiRecommendationNotes={aiNotesToDisplay}
               />
             </div>

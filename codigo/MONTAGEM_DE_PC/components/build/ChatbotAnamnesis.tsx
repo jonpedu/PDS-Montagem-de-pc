@@ -22,11 +22,11 @@ import LoadingSpinner from '../core/LoadingSpinner';
  */
 interface ChatbotAnamnesisProps {
   /**
-   * Callback acionada a cada atualização da IA com uma nova build e as preferências atualizadas.
-   * @param build - O objeto da build atualizado.
+   * Callback acionada a cada atualização da IA com novos dados para a build.
+   * @param buildUpdate - Um objeto parcial da build com os dados atualizados.
    * @param finalPreferences - O objeto de preferências do usuário atualizado.
    */
-  onBuildUpdate: (build: Build, finalPreferences: PreferenciaUsuarioInput) => void;
+  onBuildUpdate: (buildUpdate: Partial<Build>, finalPreferences: PreferenciaUsuarioInput) => void;
   /**
    * A lista de todos os componentes de hardware disponíveis para a IA escolher.
    */
@@ -97,25 +97,20 @@ const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onBuildUpdate, avai
           }
           
           const componentMap = new Map(availableComponents.map(c => [c.id, c]));
-          const recommendedComponents = response.recommendedComponentIds
+          const recommendedComponents = (response.recommendedComponentIds || [])
               .map(id => componentMap.get(id))
               .filter((c): c is Componente => Boolean(c));
           
-          const totalPrice = typeof response.estimatedTotalPrice === 'number'
-            ? response.estimatedTotalPrice
-            : recommendedComponents.reduce((sum, component) => sum + (component.Preco || 0), 0);
+          const totalPrice = response.estimatedTotalPrice ?? recommendedComponents.reduce((sum, component) => sum + (component.Preco || 0), 0);
 
-          const newBuild: Build = {
-              id: crypto.randomUUID(),
+          const buildUpdate: Partial<Build> = {
               nome: `Build para ${response.updatedPreferencias.perfilPC.purpose || 'Uso Geral'}`,
               componentes: recommendedComponents,
               orcamento: totalPrice,
-              dataCriacao: new Date().toISOString(),
-              requisitos: response.updatedPreferencias,
-              justificativa: response.justification,
+              justificativa: response.justification || undefined,
           };
           
-          onBuildUpdate(newBuild, response.updatedPreferencias);
+          onBuildUpdate(buildUpdate, response.updatedPreferencias);
       } else {
          addMessage('system', 'A IA não retornou uma resposta válida. Tente novamente.');
       }
@@ -132,7 +127,7 @@ const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onBuildUpdate, avai
   useEffect(() => {
     if (initialMessagesSent.current) return;
     if (messages.length === 0 && (!initialAnamnesisData || Object.keys(initialAnamnesisData).length <= 2)) {
-       addMessage('ai', "Olá! Sou o CodeTuga, seu assistente especializado. Conforme você me diz o que precisa, eu montarei seu PC em tempo real na tela ao lado. Vamos começar!");
+       addMessage('ai', "Olá! Sou o CodeTuga, seu assistente especializado. Vou fazer algumas perguntas para entender o que você precisa. Conforme conversamos, montarei seu PC em tempo real. Vamos começar!");
        const timeoutId = setTimeout(() => {
            callLiveBuilder('INICIAR_CONVERSA', preferencias);
        }, 500);
@@ -245,7 +240,7 @@ const ChatbotAnamnesis: React.FC<ChatbotAnamnesisProps> = ({ onBuildUpdate, avai
         {isLoading && (
              <div className="flex justify-start">
                 <div className="max-w-xs lg:max-w-md px-4 py-2 rounded-xl shadow bg-neutral-dark text-neutral">
-                    <LoadingSpinner size="sm" text="Montando..." />
+                    <LoadingSpinner size="sm" text="Pensando..." />
                 </div>
             </div>
         )}

@@ -64,10 +64,10 @@ const DashboardPage: React.FC = () => {
 
     setIsLoadingBuilds(true);
     
-    // Consulta otimizada: busca builds e aninha os dados completos dos componentes
-    // em vez de apenas seus IDs. Isso evita a necessidade de carregar todos os
-    // componentes na memória do cliente e fazer o join manualmente.
-    const { data, error } = await supabase
+    // To work around the "Type instantiation is excessively deep" error, we avoid
+    // direct destructuring. Instead, we assign the result to a variable explicitly
+    // typed as `any` to halt TypeScript's problematic deep type inference.
+    const response: any = await supabase
       .from('builds')
       .select(`
         id,
@@ -83,6 +83,8 @@ const DashboardPage: React.FC = () => {
       `)
       .eq('user_id', currentUser.id)
       .order('data_criacao', { ascending: false });
+
+    const { data, error } = response;
 
     if (error) {
       toast.error(`Não foi possível carregar suas builds: ${error.message}`);

@@ -300,3 +300,11 @@ export interface CityWeatherData {
   /** Temperatura mínima média anual em Celsius. */
   minTemp: number;
 }
+
+/**
+ * @typedef {Json}
+ * @description Define um tipo para campos JSON no banco de dados.
+ * O uso de `any` é uma solução pragmática para evitar erros de "Type instantiation is excessively deep"
+ * que podem ocorrer com tipos recursivos complexos gerados pelo Supabase.
+ */
+export type Json = any;

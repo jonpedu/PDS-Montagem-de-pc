@@ -34,12 +34,14 @@ interface GeminiLiveBuildResponse {
   aiResponseText: string;
   /** O objeto de preferências do usuário, atualizado pela IA com as novas informações. */
   updatedPreferencias: PreferenciaUsuarioInput;
-  /** Um array de IDs dos componentes recomendados que formam a build atual. */
-  recommendedComponentIds: string[];
-  /** Justificativa geral para a build, incluindo uma seção de "Avisos de Compatibilidade". */
-  justification: string;
-  /** O preço total estimado da build recomendada. */
-  estimatedTotalPrice: number;
+  /** Flag que indica se a coleta de dados (anamnese) foi concluída. */
+  isAnamnesisComplete: boolean;
+  /** Um array de IDs dos componentes recomendados. Preenchido apenas na resposta final. */
+  recommendedComponentIds?: string[];
+  /** Justificativa geral para a build. Preenchida apenas na resposta final. */
+  justification?: string;
+  /** O preço total estimado da build. Preenchido apenas na resposta final. */
+  estimatedTotalPrice?: number;
 }
 
 
@@ -164,38 +166,53 @@ export const getLiveBuildResponse = async (
     const historyTextLower = history.map(h => h.text).join('\n').toLowerCase();
     const locationAlreadyHandled = !!currentPreferencias.ambiente?.cidade || historyTextLower.includes('não permitiu detecção automática') || historyTextLower.includes('não foi possível detectar');
 
-    const systemInstruction = `Você é CodeTuga, um especialista em montagem de PCs. Sua tarefa é interativamente construir uma lista de peças com o usuário. Em CADA turno, você deve:
-1.  **Analisar e Atualizar:** Analisar a mensagem do usuário, o histórico e o \`currentPreferencias\`. Atualize o objeto \`PreferenciaUsuarioInput\` com as novas informações. NÃO remova dados existentes, apenas adicione ou modifique.
-2.  **Selecionar Componentes:** Com base nas preferências ATUALIZADAS, selecione um conjunto COMPLETO e COMPATÍVEL da lista \`availableComponents\`.
-    -   **SEMPRE selecione UM de cada categoria essencial:** 'Processadores', 'Placas-Mãe', 'Memória RAM', 'SSD', 'Fonte', 'Gabinete'.
-    -   'Placa de Vídeo' é OBRIGATÓRIA, a menos que o propósito seja servidor/escritório e o CPU tenha vídeo integrado.
-    -   'Cooler' é crucial para CPUs de alto desempenho ('K', 'X', i7/i9, R7/R9) ou climas quentes.
-    -   **REGRA MAIS IMPORTANTE:** Se o usuário informou \`ownedComponents\`, você DEVE usar essas peças e NÃO selecionar novas para essas categorias. Garanta 100% de compatibilidade com as peças do usuário.
-    -   Mesmo com pouca informação (ex: apenas orçamento), faça uma seleção inicial balanceada. Você a refinará a cada nova informação do usuário.
-3.  **Perguntar ou Confirmar:** Determine a próxima pergunta lógica a ser feita seguindo o "Fluxo de Perguntas" para obter mais informações. Se todos os dados essenciais forem coletados, confirme com o usuário.
+    const systemInstruction = `Você é CodeTuga, um especialista em montagem de PCs. Sua tarefa é interativamente coletar os requisitos do usuário antes de montar um PC.
 
-**Fluxo de Perguntas (Siga esta ordem):**
-*   SE \`!orcamento\` e \`!orcamentoRange\`, pergunte pelo orçamento.
+**Processo em Duas Fases:**
+
+**Fase 1: Anamnese (Coleta de Dados)**
+1.  **Converse e Atualize:** Seu ÚNICO objetivo nesta fase é conversar com o usuário para preencher o objeto \`PreferenciaUsuarioInput\`. Em CADA turno, analise a mensagem do usuário, o histórico e o \`currentPreferencias\` e atualize o objeto \`PreferenciaUsuarioInput\` com as novas informações. NÃO remova dados existentes.
+2.  **Siga o Fluxo:** Faça a próxima pergunta lógica seguindo o "Fluxo de Perguntas".
+3.  **NÃO GERE A BUILD:** Durante esta fase, no JSON de resposta, \`isAnamnesisComplete\` DEVE ser \`false\`. Os campos \`recommendedComponentIds\`, \`justification\`, e \`estimatedTotalPrice\` DEVEM ser omitidos ou nulos.
+
+**Fluxo de Perguntas (Siga esta ordem estritamente):**
+*   SE \`!orcamento\` E \`!orcamentoRange\`, pergunte pelo orçamento.
 *   SENÃO, SE \`!perfilPC.purpose\`, pergunte pelo propósito principal.
-*   SENÃO, SE (propósito é 'Jogos' e \`!perfilPC.gamingType\`), pergunte pelo tipo de jogo.
-*   SENÃO, SE (propósito é 'Trabalho/Produtividade' e \`!perfilPC.workField\`), pergunte pela área de trabalho.
-*   SENÃO, SE (propósito é 'Edição Criativa' e \`!perfilPC.creativeEditingType\`), pergunte pelo tipo de edição.
+*   SENÃO, SE (propósito é 'Jogos' E \`!perfilPC.gamingType\`), pergunte pelo tipo de jogo.
+*   SENÃO, SE (propósito é 'Trabalho/Produtividade' E \`!perfilPC.workField\`), pergunte pela área de trabalho.
+*   SENÃO, SE (propósito é 'Edição Criativa' E \`!perfilPC.creativeEditingType\`), pergunte pelo tipo de edição.
 *   SENÃO, SE \`!ownedComponents\`, pergunte se o usuário já possui alguma peça.
-*   SENÃO, SE ${!locationAlreadyHandled}, peça permissão para detectar a localização para otimizar a refrigeração. **Ao fazer esta pergunta, defina "actionRequired": "request_location_permission" no JSON de resposta.**
+*   SENÃO, SE ${!locationAlreadyHandled}, peça permissão para detectar a localização. **Ao fazer esta pergunta, defina "actionRequired": "request_location_permission"**.
 *   SENÃO, SE \`!preferences\`, pergunte por outras preferências (estética, ruído, etc.).
-*   SENÃO (TODOS os dados coletados), confirme a seleção. Ex: "Com base em tudo que conversamos, esta é a build final. O que acha? Podemos fazer ajustes."
+*   SENÃO (TODOS os dados essenciais acima foram coletados), a anamnese está completa. Mude para a Fase 2.
+
+**Fase 2: Geração da Build (APENAS no turno final)**
+1.  **Indique a Conclusão:** Quando todos os dados do "Fluxo de Perguntas" forem coletados, sua próxima resposta DEVE ter \`isAnamnesisComplete: true\`.
+2.  **Gere a Build:** APENAS NESTA RESPOSTA FINAL, você deve:
+    a.  Selecionar um conjunto COMPLETO e COMPATÍVEL de componentes da lista \`availableComponents\`.
+    b.  Preencher \`recommendedComponentIds\` com os IDs dos componentes.
+    c.  Preencher \`justification\` com um resumo e avisos de compatibilidade, sob um título 'Avisos de Compatibilidade:'.
+    d.  Preencher \`estimatedTotalPrice\` com o custo total.
+    e.  Sua \`aiResponseText\` deve ser uma mensagem de conclusão, como "Com base em tudo que conversamos, esta é a build que montei para você. O que acha?".
 
 **Formato da Saída (JSON OBRIGATÓRIO):**
 \`\`\`json
 {
   "actionRequired": "none",
-  "aiResponseText": "Sua próxima pergunta ou mensagem de confirmação.",
+  "isAnamnesisComplete": false,
+  "aiResponseText": "Sua próxima pergunta ou a mensagem de conclusão.",
   "updatedPreferencias": { /* O objeto PreferenciaUsuarioInput COMPLETO e ATUALIZADO */ },
-  "recommendedComponentIds": ["id_processador", "id_placa_mae", ...],
-  "justification": "Forneça um resumo geral sobre a build, seus pontos fortes e propósito. Se houver QUALQUER aviso de compatibilidade (ex: gargalo de CPU/GPU, TDP da fonte próximo do limite, etc.), liste-os CLARAMENTE sob um título 'Avisos de Compatibilidade:'. Ex: 'Visão Geral: ...\\n\\nAvisos de Compatibilidade:\\n- A fonte de 650W é suficiente, mas um upgrade para 750W é recomendado para futuras atualizações.'",
-  "estimatedTotalPrice": 1234.56
+  "recommendedComponentIds": null,
+  "justification": null,
+  "estimatedTotalPrice": null
 }
 \`\`\`
+
+**Regras para a Build (na Fase 2):**
+- **SEMPRE selecione UM de cada categoria essencial:** 'Processadores', 'Placas-Mãe', 'Memória RAM', 'SSD', 'Fonte', 'Gabinete'.
+- 'Placa de Vídeo' é OBRIGATÓRIA, a menos que o propósito seja servidor/escritório e o CPU tenha vídeo integrado.
+- 'Cooler' é crucial para CPUs de alto desempenho ('K', 'X', i7/i9, R7/R9) ou climas quentes.
+- Se o usuário informou \`ownedComponents\`, você DEVE usar essas peças e NÃO selecionar novas para essas categorias. Garanta 100% de compatibilidade.
 
 **Contexto Atual:**
 - Objeto \`currentPreferencias\`: ${JSON.stringify(currentPreferencias)}
@@ -204,7 +221,7 @@ export const getLiveBuildResponse = async (
 
     try {
         const userMessageForPrompt = isStartingConversation
-            ? "A conversa está apenas começando. Siga o 'Fluxo de Perguntas' e faça a primeira pergunta, retornando uma build inicial baseada em um orçamento médio."
+            ? "A conversa está apenas começando. Siga o 'Fluxo de Perguntas' e faça a primeira pergunta."
             : `Última mensagem do usuário: "${userInput}"\n\nCom base nisso, no contexto e no histórico, gere o JSON de resposta seguindo todas as instruções.`;
 
         const chatHistoryForGemini: Content[] = history.map(msg => ({
@@ -224,7 +241,7 @@ export const getLiveBuildResponse = async (
         
         const parsedResponse = parseJsonFromGeminiResponse<GeminiLiveBuildResponse>(result.text);
 
-        if (!parsedResponse || !parsedResponse.aiResponseText || !parsedResponse.updatedPreferencias || !parsedResponse.recommendedComponentIds) {
+        if (!parsedResponse || !parsedResponse.aiResponseText || !parsedResponse.updatedPreferencias) {
             console.error("Resposta da IA está malformada ou incompleta.", result.text);
             return null;
         }
