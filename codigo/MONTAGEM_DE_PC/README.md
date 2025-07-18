@@ -1,5 +1,3 @@
-# Execute e faça deploy do seu app AI Studio
-
 Este guia contém tudo o que você precisa para rodar seu app localmente.
 
 ## Executar localmente
