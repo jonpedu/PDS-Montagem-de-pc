@@ -16,7 +16,7 @@ Com tudo pronto, basta iniciar o projeto localmente executando o comando npm run
 # Licença:
 autor: Arlison Gaspar de Oliveira, Ítalo Francisco Almeida de Oliveira, Gustavo de Oliveira Rego Morais, Joao Pedro Miranda Sousa, Cauã Gabriel Santos Barros contato: Arlison.go@discente.ufma.br ​
 
-data última versão: 11/07/2025 ​
+data última versão: 18/07/2025 ​
 
 versão: 6.4​
 
