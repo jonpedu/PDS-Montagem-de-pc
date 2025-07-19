@@ -4,7 +4,7 @@ Este projeto visa facilitar a montagem de PCs personalizados com o uso de IA. O 
 
 ​
 # Como rodar
-Para executar o projeto localmente, é necessário ter o Node.js instalado e uma chave de API do Gemini. O processo começa acessando a pasta raiz do projeto com o comando cd codigo/MONTAGEM_DE_PC. Em seguida, é preciso instalar as dependências utilizando os seguintes comandos no terminal: npm install, npm install --save-dev @types/react @types/react-dom, npm install vite --save-dev e npm install jspdf.​
+Para executar o projeto localmente, é necessário ter o Node.js instalado e uma chave de API do Gemini. O processo começa acessando a pasta raiz do projeto com o comando cd codigo/MONTAGEM_DE_PC. Em seguida, é preciso instalar as dependências utilizando os seguintes comandos no terminal: npm install, npm install --save-dev @types/react @types/react-dom, npm install vite --save-dev,npm install jspdf e npm install react-hot-toast.​
 
 Como etapa opcional, recomenda-se rodar npm audit fix --force para corrigir automaticamente vulnerabilidades encontradas nas dependências.​
 
